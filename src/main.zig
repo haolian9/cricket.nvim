@@ -1,6 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 const log = std.log;
+const mem = std.mem;
 
 // * loadlist {playlist}
 // * playlist-next/prev, shuffle/unshuffle
@@ -9,30 +10,30 @@ const log = std.log;
 // * volume up/down
 // * mute/unmute
 
-const client = @cImport(@cInclude("mpv/client.h"));
+const c = @cImport(@cInclude("mpv/client.h"));
 
-var ctx: ?*client.mpv_handle = null;
+var ctx: ?*c.mpv_handle = null;
 
 fn checkError(status: c_int) !void {
     if (status >= 0) return;
 
-    log.err("mpv API error: {s}", .{client.mpv_error_string(status)});
+    log.err("mpv API error: {s}", .{c.mpv_error_string(status)});
     return error.API;
 }
 
 fn initImpl() !void {
     if (ctx != null) return;
 
-    ctx = client.mpv_create() orelse return error.CreateFailed;
+    ctx = c.mpv_create() orelse return error.CreateFailed;
 
     // no inputs
-    try checkError(client.mpv_set_option_string(ctx, "input-default-bindings", "no"));
-    try checkError(client.mpv_set_option_string(ctx, "input-vo-keyboard", "no"));
-    try checkError(client.mpv_set_option_string(ctx, "osc", "no"));
+    try checkError(c.mpv_set_option_string(ctx, "input-default-bindings", "no"));
+    try checkError(c.mpv_set_option_string(ctx, "input-vo-keyboard", "no"));
+    try checkError(c.mpv_set_option_string(ctx, "osc", "no"));
     // no ui/window
-    try checkError(client.mpv_set_option_string(ctx, "audio-display", "no"));
+    try checkError(c.mpv_set_option_string(ctx, "audio-display", "no"));
 
-    try checkError(client.mpv_initialize(ctx));
+    try checkError(c.mpv_initialize(ctx));
 }
 
 export fn cricket_init() bool {
@@ -43,29 +44,29 @@ export fn cricket_init() bool {
     return true;
 }
 
-fn destroyImpl() void {
-    if (ctx == null) return;
+fn quitImpl() !void {
+    if (ctx == null) return error.InitRequired;
 
-    client.mpv_terminate_destroy(ctx);
+    var cmd = [_:null]?[*:0]const u8{ "quit", null };
+    checkError(c.mpv_command(ctx, &cmd)) catch unreachable;
+
+    c.mpv_terminate_destroy(ctx);
     ctx = null;
 }
 
-export fn cricket_destroy() void {
-    destroyImpl();
+export fn cricket_quit() bool {
+    quitImpl() catch |err| {
+        log.err("quit {!}", .{err});
+        return false;
+    };
+    return true;
 }
 
 fn playlistSwitchImpl(path: [*:0]const u8) !void {
     if (ctx == null) return error.InitRequired;
 
-    // todo: seamless
-    { // clear
-        var cmd = [_:null]?[*:0]const u8{ "playlist-clear", null };
-        try checkError(client.mpv_command(ctx, &cmd));
-    }
-    {
-        var cmd = [_:null]?[*:0]const u8{ "loadlist", path, null };
-        try checkError(client.mpv_command(ctx, &cmd));
-    }
+    var cmd = [_:null]?[*:0]const u8{ "loadlist", path, null };
+    try checkError(c.mpv_command(ctx, &cmd));
 }
 
 export fn cricket_playlist_switch(path: [*:0]const u8) bool {
@@ -76,34 +77,44 @@ export fn cricket_playlist_switch(path: [*:0]const u8) bool {
     return true;
 }
 
-fn playlistShuffleImpl() !void {
-    if (ctx == null) return error.InitRequired;
+const allowed_subcmds = std.ComptimeStringMap(void, .{
+    .{"playlist-shuffle"},
+    .{"playlist-next"},
+});
 
-    //todo: global cmds enum
-    var cmd = [_:null]?[*:0]const u8{ "playlist-shuffle", null };
-    try checkError(client.mpv_command(ctx, &cmd));
+fn cmd1Impl(subcmd: [*:0]const u8) !void {
+    if (ctx == null) return error.InitRequired;
+    if (!allowed_subcmds.has(mem.span(subcmd))) return error.InvalidSubcmd;
+
+    var cmd = [_:null]?[*:0]const u8{ subcmd, null };
+    try checkError(c.mpv_command(ctx, &cmd));
 }
 
-export fn cricket_playlist_shuffle() bool {
-    playlistShuffleImpl() catch |err| {
-        log.err("playlist-shuffle {!}", .{err});
+export fn cricket_cmd1(subcmd: [*:0]const u8) bool {
+    cmd1Impl(subcmd) catch |err| {
+        log.err("{s} {!}", .{ subcmd, err });
         return false;
     };
     return true;
 }
 
-// todo: cricket_cmd0?
-fn quitImpl() !void {
+fn propFilenameImpl(result: *[std.fs.MAX_PATH_BYTES:0]u8) !void {
     if (ctx == null) return error.InitRequired;
 
-    var cmd = [_:null]?[*:0]const u8{ "quit", null };
-    try checkError(client.mpv_command(ctx, &cmd));
-    destroyImpl();
+    var pos: i64 = undefined;
+    try checkError(c.mpv_get_property(ctx, "playlist-pos", c.MPV_FORMAT_INT64, &pos));
+
+    var prop_buf: [32]u8 = undefined;
+    const prop = try std.fmt.bufPrintZ(&prop_buf, "playlist/{d}/filename", .{pos});
+    // todo: why does mpv_get_property(prop.ptr, c.MPV_FORMAT_STRING, &buf) not work
+    const filename = c.mpv_get_property_string(ctx, prop.ptr);
+    defer c.mpv_free(filename);
+    mem.copy(u8, result, mem.span(filename));
 }
 
-export fn cricket_quit() bool {
-    quitImpl() catch |err| {
-        log.err("quit {!}", .{err});
+export fn cricket_prop_filename(result: *[std.fs.MAX_PATH_BYTES:0]u8) bool {
+    propFilenameImpl(result) catch |err| {
+        log.err("{!}", .{err});
         return false;
     };
     return true;
