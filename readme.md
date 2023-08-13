@@ -6,13 +6,13 @@ a mpv frontend built with nvim facilities
 ## features/limits
 * run mpv as a daemon
 * control mpv over ffi rather than ipc
-* first-class playlist, no single track
+* first-class playlist, no operations on single track
 * every playlist is a file, edit it to change track orders
-* no dedicated UI
+* no UI, it's headless
 
 
 ## status
-* far from usable
+* it just works (tm)
 * it uses ffi which may crash nvim often
 
 
@@ -20,7 +20,9 @@ a mpv frontend built with nvim facilities
 * mpv/libmpv 0.35.1
 * nvim 0.9.*
 * zig 0.10.*
-* ~~haolian9/cthulhu.nvim~~
 * haolian9/infra.nvim
 * haolian9/kite.nvim
-* haolian9/tui.nvim
+
+
+## usage
+TBD
