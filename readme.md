@@ -1,8 +1,14 @@
+促织
+
 a mpv frontend built with nvim facilities
 
 
 ## features/limits
-* TBD
+* run mpv as a daemon
+* control mpv over ffi rather than ipc
+* first-class playlist, no single track
+* every playlist is a file, edit it to change track orders
+* no dedicated UI
 
 
 ## status
