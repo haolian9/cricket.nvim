@@ -1,6 +1,7 @@
 local M = {}
 
 local bufpath = require("infra.bufpath")
+local coreutils = require"infra.coreutils"
 local ex = require("infra.ex")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
@@ -20,6 +21,7 @@ end
 local facts = {}
 do
   facts.root = fs.joinpath(vim.fn.stdpath("state"), "cricket")
+  coreutils.mkdir(facts.root)
 end
 
 local iter_music_files
