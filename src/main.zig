@@ -1,8 +1,13 @@
 const std = @import("std");
 const testing = std.testing;
-const log = std.log;
 const mem = std.mem;
 const fmt = std.fmt;
+const os = std.os;
+const fs = std.fs;
+const linux = std.os.linux;
+const log = std.log;
+
+pub const log_level: std.log.Level = .info;
 
 const c = @cImport(@cInclude("mpv/client.h"));
 
@@ -11,7 +16,7 @@ var ctx: ?*c.mpv_handle = null;
 fn checkError(status: c_int) !void {
     if (status >= 0) return;
 
-    log.err("mpv API error: {s}", .{c.mpv_error_string(status)});
+    log.debug("mpv API error: {s}", .{c.mpv_error_string(status)});
     return error.API;
 }
 
@@ -32,7 +37,7 @@ fn initImpl() !void {
 
 export fn cricket_init() bool {
     initImpl() catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;
@@ -50,7 +55,7 @@ fn quitImpl() !void {
 
 export fn cricket_quit() bool {
     quitImpl() catch |err| {
-        log.err("quit {!}", .{err});
+        log.debug("quit {!}", .{err});
         return false;
     };
     return true;
@@ -65,7 +70,7 @@ fn playlistSwitchImpl(path: [*:0]const u8) !void {
 
 export fn cricket_playlist_switch(path: [*:0]const u8) bool {
     playlistSwitchImpl(path) catch |err| {
-        log.err("playlist-switch {!}", .{err});
+        log.debug("playlist-switch {!}", .{err});
         return false;
     };
     return true;
@@ -90,7 +95,7 @@ fn cmd1Impl(subcmd: [*:0]const u8) !void {
 
 export fn cricket_cmd1(subcmd: [*:0]const u8) bool {
     cmd1Impl(subcmd) catch |err| {
-        log.err("{s} {!}", .{ subcmd, err });
+        log.debug("{s} {!}", .{ subcmd, err });
         return false;
     };
     return true;
@@ -112,7 +117,7 @@ fn propFilenameImpl(result: *[4096:0]u8) !void {
 
 export fn cricket_prop_filename(result: *[4096:0]u8) bool {
     propFilenameImpl(result) catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;
@@ -129,7 +134,7 @@ fn seekImpl(offset: i8) !void {
 
 export fn cricket_seek(offset: i8) bool {
     seekImpl(offset) catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;
@@ -138,19 +143,24 @@ export fn cricket_seek(offset: i8) bool {
 const allowed_toggles = std.ComptimeStringMap(void, .{
     .{"mute"},
     .{"pause"},
+    .{"loop-playlist"},
 });
+
+var loop: bool = false; // a workaround to record loop-playlist since mpv does not expose it
 
 fn toggleImpl(what: [*:0]const u8) !void {
     if (ctx == null) return error.InitRequired;
     if (!allowed_toggles.has(mem.span(what))) return error.InvalidToggle;
 
-    var cmd = [_:null]?[*:0]const u8{ "cycle", what, null };
+    var cmd = [_:null]?[*:0]const u8{ "cycle-values", what, "yes", "no", null };
     try checkError(c.mpv_command(ctx, &cmd));
+
+    if (mem.eql(u8, mem.span(what), "loop-playlist")) loop = !loop;
 }
 
 export fn cricket_toggle(what: [*:0]const u8) bool {
     toggleImpl(what) catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;
@@ -159,32 +169,45 @@ export fn cricket_toggle(what: [*:0]const u8) bool {
 fn volumeImpl(offset: i8) !void {
     if (ctx == null) return error.InitRequired;
     if (offset == 0) return;
+
     var buf: [4]u8 = undefined;
     const str = try fmt.bufPrintZ(&buf, "{d:1}", .{offset});
     var cmd = [_:null]?[*:0]const u8{ "add", "volume", str, null };
     try checkError(c.mpv_command(ctx, &cmd));
 }
 
-/// offset: percent?
+/// offset: percent
 export fn cricket_volume(offset: i8) bool {
     volumeImpl(offset) catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;
 }
 
+const allowed_propis = std.ComptimeStringMap(void, .{
+    .{"volume"}, // 0-100 percent
+    .{"duration"}, // Duration of the current file in seconds
+    .{"percent-pos"}, // 0-100; Position in current file (0-100)
+    .{"loop-playlist"}, // -1 or 1
+});
+
 fn propiImpl(name: [*:0]const u8, result: *i64) !void {
     if (ctx == null) return error.InitRequired;
+    if (!allowed_propis.has(mem.span(name))) return error.InvalidPropi;
 
     var val: i64 = undefined;
-    try checkError(c.mpv_get_property(ctx, name, c.MPV_FORMAT_INT64, &val));
+    if (mem.eql(u8, mem.span(name), "loop-playlist")) {
+        val = if (loop) -1 else 1;
+    } else {
+        try checkError(c.mpv_get_property(ctx, name, c.MPV_FORMAT_INT64, &val));
+    }
     result.* = val;
 }
 
 export fn cricket_propi(name: [*:0]const u8, result: *i64) bool {
     propiImpl(name, result) catch |err| {
-        log.err("{!}", .{err});
+        log.debug("{!}", .{err});
         return false;
     };
     return true;

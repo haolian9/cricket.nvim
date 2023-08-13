@@ -13,7 +13,7 @@ ffi.cdef([[
   bool cricket_toggle(const char *what);
   bool cricket_seek(int8_t offset);
   bool cricket_volume(int8_t offset);
-  int64_t cricket_propi(const char *name);
+  bool cricket_propi(const char *name, int64_t *result);
 ]])
 
 local C
@@ -45,25 +45,25 @@ function M.cmd1(subcmd) return C.cricket_cmd1(subcmd) end
 ---@return boolean
 function M.seek(offset) return C.cricket_seek(offset) end
 
----@param what "mute"|"pause"
+---@param what "mute"|"pause"|"loop-playlist"
 ---@return boolean
 function M.toggle(what) return C.cricket_toggle(what) end
 
----@return string
+---@return string?
 function M.prop_filename()
   local buf = ffi.new("char[?]", 4096)
-  assert(C.cricket_prop_filename(buf))
-  return ffi.string(buf)
+  if C.cricket_prop_filename(buf) then return ffi.string(buf) end
 end
 
 ---@param offset integer
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
+---@param name "volume"|"duration"|"percent-pos"|"loop-playlist"
+---@return integer?
 function M.propi(name)
   local val = ffi.new("int64_t[1]")
-  assert(C.cricket_propi(name, val))
-  return tonumber(val[1])
+  if C.cricket_propi(name, val) then return assert(tonumber(val[0])) end
 end
 
 return M

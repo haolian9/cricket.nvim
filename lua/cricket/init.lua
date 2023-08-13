@@ -5,11 +5,11 @@ local ex = require("infra.ex")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
 local jelly = require("infra.jellyfish")("cricket", "debug")
+local bufmap = require("infra.keymap.buffer")
 local strlib = require("infra.strlib")
 
 local player = require("cricket.player")
 local kite = require("kite")
-local tui = require("tui")
 
 local api = vim.api
 
@@ -67,24 +67,6 @@ function M.collect(dir)
   end
 end
 
-function M.switch()
-  local iter = fn.filter(function(_, type)
-    if type ~= "file" then return false end
-    return true
-  end, fs.iterdir(facts.root))
-
-  local playlists = {}
-  for path in iter do
-    table.insert(playlists, path)
-  end
-
-  tui.select(playlists, { prompt = "choose a playlist to play" }, function(playlist)
-    if playlist == nil then return end
-    player.playlist_switch(fs.joinpath(facts.root, playlist))
-    jelly.info("playing playlist: %s", playlist)
-  end)
-end
-
 function M.play_this()
   local bufnr = api.nvim_get_current_buf()
 
@@ -93,14 +75,18 @@ function M.play_this()
   if not strlib.startswith(path, facts.root) then return jelly.warn("not a known playlist") end
 
   assert(player.playlist_switch(path))
-  jelly.info("playing playlist: %s", fs.basename(path))
+  jelly.info("playing: %s", fs.basename(path))
 end
 
-function M.browse() kite.fly(facts.root) end
-
-function M.info()
-  local filename = player.prop_filename()
-  return string.format("playing track: %s", fs.basename(filename))
+function M.browse()
+  kite.fly(facts.root)
+  local bufnr = api.nvim_get_current_buf()
+  assert(strlib.startswith(api.nvim_buf_get_name(bufnr), "kite://"))
+  bufmap(bufnr, "n", "<cr>", function()
+    local fname = strlib.lstrip(api.nvim_get_current_line(), " ")
+    assert(player.playlist_switch(fs.joinpath(facts.root, fname)))
+    jelly.info("playing: %s", fname)
+  end)
 end
 
 return M
