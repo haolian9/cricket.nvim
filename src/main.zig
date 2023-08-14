@@ -6,6 +6,7 @@ const os = std.os;
 const fs = std.fs;
 const linux = std.os.linux;
 const log = std.log;
+const assert = std.debug.assert;
 
 pub const log_level: std.log.Level = .info;
 
@@ -231,4 +232,23 @@ export fn cricket_play_index(index: u16) bool {
         return false;
     };
     return true;
+}
+
+fn propPlaylistImpl() ![*c]u8 {
+    if (ctx == null) return error.InitRequired;
+
+    // if (false) { var node: c.mpv_node = undefined; try checkError(c.mpv_get_property(ctx, "playlist", c.MPV_FORMAT_NODE, &node)); defer c.mpv_free_node_contents(&node); assert(node.format == c.MPV_FORMAT_NODE_ARRAY); var list = node.u.list.*.values; const list_end = list + @intCast(usize, node.u.list.*.num); while (list < list_end) : (list += 1) { const map: c.mpv_node_list = list.*.u.list.*; var keys = map.keys; var values = map.values; const keys_end = keys + @intCast(usize, map.num); while (keys < keys_end) : ({ keys += 1; values += 1; }) { const k = mem.span(keys.*); const v = values.*.u; if (mem.eql(u8, k, "filename")) { log.info("filename: {s}", .{v.string}); } else if (mem.eql(u8, k, "current")) { log.info("current? {d}", .{v.flag}); } } } }
+    return c.mpv_get_property_string(ctx, "playlist");
+}
+
+export fn cricket_prop_playlist() [*c]u8 {
+    return propPlaylistImpl() catch |err| {
+        log.debug("{!}", .{err});
+        return null;
+    };
+}
+
+export fn cricket_free(ptr: ?*anyopaque) void {
+    if (ptr == null) return;
+    c.mpv_free(ptr);
 }

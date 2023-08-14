@@ -15,6 +15,8 @@ ffi.cdef([[
   bool cricket_volume(int8_t offset);
   bool cricket_propi(const char *name, int64_t *result);
   bool cricket_play_index(uint16_t index);
+  char *cricket_prop_playlist(void);
+  void cricket_free(void *ptr);
 ]])
 
 local C
@@ -70,5 +72,22 @@ end
 ---@param index integer @>=0
 ---@return boolean
 function M.play_index(index) return C.cricket_play_index(index) end
+
+do
+  ---@class cricket.Chirp
+  ---@field filename string
+  ---@field current? 1
+  ---@field playing? 1
+  ---@field title? string
+  ---@field id integer
+
+  ---@return cricket.Chirp[]
+  function M.prop_playlist()
+    local ptr = C.cricket_prop_playlist()
+    if ptr == nil then return {} end
+    --todo: avoid ffi.string
+    return vim.json.decode(ffi.string(ptr))
+  end
+end
 
 return M

@@ -8,7 +8,7 @@ a mpv frontend built with nvim facilities
 * control mpv over ffi rather than ipc
 * first-class playlist, no operations on single track
 * every playlist is a file, edit it to change track orders
-* no UI, it's headless
+* it has a rough UI
 
 
 ## status

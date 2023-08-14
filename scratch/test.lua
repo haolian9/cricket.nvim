@@ -11,6 +11,8 @@ ffi.cdef([[
   bool cricket_volume(int8_t offset);
   bool cricket_propi(const char *name, int64_t *result);
   bool cricket_play_index(uint16_t index);
+  char *cricket_prop_playlist(void);
+  void cricket_free(void *ptr);
 ]])
 
 local C = ffi.load("/srv/playground/cricket.nvim/zig-out/lib/libcricket.so", false)
@@ -65,13 +67,24 @@ do
     --   os.execute("sleep 2")
     -- end
 
-    do
-      assert(C.cricket_play_index(3))
-      local buf = ffi.new("char[?]", 4096)
-      assert(C.cricket_prop_filename(buf))
-      print("filename", ffi.string(buf))
-      os.execute("sleep 10")
+    -- do
+    --   assert(C.cricket_play_index(3))
+    --   local buf = ffi.new("char[?]", 4096)
+    --   assert(C.cricket_prop_filename(buf))
+    --   print("filename", ffi.string(buf))
+    --   os.execute("sleep 10")
+    -- end
+
+    if false then
+      local ptr = C.cricket_prop_playlist()
+      local ok, err = pcall(function()
+        if ptr ~= nil then print(ffi.string(ptr)) end
+      end)
+      C.cricket_free(ptr)
+      if not ok then error(err) end
     end
+
+    C.cricket_free(nil)
   end, debug.traceback)
 
   C.cricket_quit()
