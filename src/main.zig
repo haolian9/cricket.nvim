@@ -31,6 +31,7 @@ fn initImpl() !void {
     try checkError(c.mpv_set_option_string(ctx, "osc", "no"));
     // no ui/window
     try checkError(c.mpv_set_option_string(ctx, "audio-display", "no"));
+    try checkError(c.mpv_set_option_string(ctx, "idle", "yes"));
 
     try checkError(c.mpv_initialize(ctx));
 }
@@ -44,10 +45,10 @@ export fn cricket_init() bool {
 }
 
 fn quitImpl() !void {
-    if (ctx == null) return error.InitRequired;
+    if (ctx == null) return;
 
     var cmd = [_:null]?[*:0]const u8{ "quit", null };
-    checkError(c.mpv_command(ctx, &cmd)) catch unreachable;
+    checkError(c.mpv_command(ctx, &cmd)) catch {};
 
     c.mpv_terminate_destroy(ctx);
     ctx = null;
@@ -190,6 +191,8 @@ const allowed_propis = std.ComptimeStringMap(void, .{
     .{"duration"}, // Duration of the current file in seconds
     .{"percent-pos"}, // 0-100; Position in current file (0-100)
     .{"loop-playlist"}, // -1 or 1
+    .{"playlist-pos"}, // starts from 0
+    .{"playlist-count"},
 });
 
 fn propiImpl(name: [*:0]const u8, result: *i64) !void {
@@ -207,6 +210,23 @@ fn propiImpl(name: [*:0]const u8, result: *i64) !void {
 
 export fn cricket_propi(name: [*:0]const u8, result: *i64) bool {
     propiImpl(name, result) catch |err| {
+        log.debug("{!}", .{err});
+        return false;
+    };
+    return true;
+}
+
+fn playIndexImpl(index: u16) !void {
+    if (ctx == null) return error.InitRequired;
+
+    var buf: [8]u8 = undefined;
+    const str = try fmt.bufPrintZ(&buf, "{d}", .{index});
+    var cmd = [_:null]?[*:0]const u8{ "playlist-play-index", str, null };
+    try checkError(c.mpv_command(ctx, &cmd));
+}
+
+export fn cricket_play_index(index: u16) bool {
+    playIndexImpl(index) catch |err| {
         log.debug("{!}", .{err});
         return false;
     };

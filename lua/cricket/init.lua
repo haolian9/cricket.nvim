@@ -1,7 +1,8 @@
 local M = {}
 
 local bufpath = require("infra.bufpath")
-local coreutils = require"infra.coreutils"
+local coreutils = require("infra.coreutils")
+local ctx = require("infra.ctx")
 local ex = require("infra.ex")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
@@ -16,6 +17,7 @@ local api = vim.api
 
 do --init
   player.init()
+  api.nvim_create_autocmd("vimleave", { callback = function() player.quit() end })
 end
 
 local facts = {}
@@ -34,24 +36,26 @@ do
     return string.sub(path, at)
   end
 
-  ---@param dir string
+  ---@param root string
   ---@return fun(): string? @generates absolute file paths
-  function iter_music_files(dir)
-    local iter = fn.filter(function(ent, type)
-      if type ~= "file" then return false end
-      local ext = resolve_ext(ent)
+  function iter_music_files(root)
+    local iter = fn.filtern(function(fname, ftype)
+      if ftype ~= "file" then return false end
+      local ext = resolve_ext(fname)
       if ext == nil then return false end
       return allowed_exts[string.lower(ext)]
-    end, fs.iterdir(dir))
+    end, fs.iterdir(root))
 
     return function()
-      local ent = iter()
-      if ent == nil then return end
-      return fs.joinpath(dir, ent)
+      local fname = iter()
+      if fname == nil then return end
+      return fs.joinpath(root, fname)
     end
   end
 end
 
+---collect music files in a directory non-recursively
+---@param dir string @absolute path
 function M.collect(dir)
   if not fs.exists(dir) then return jelly.warn("%s not exists", dir) end
 
@@ -59,14 +63,11 @@ function M.collect(dir)
 
   ex("tabedit", path)
 
-  local bufnr = api.nvim_get_current_buf()
+  if fs.exists(path) then return end
 
-  if not fs.exists(path) then
-    local lines = fn.tolist(iter_music_files(dir))
-    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  else
-    --keep it unchanged
-  end
+  local bufnr = api.nvim_get_current_buf()
+  local lines = fn.tolist(iter_music_files(dir))
+  ctx.no_undo(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, lines) end)
 end
 
 function M.play_this()

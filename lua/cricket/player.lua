@@ -14,6 +14,7 @@ ffi.cdef([[
   bool cricket_seek(int8_t offset);
   bool cricket_volume(int8_t offset);
   bool cricket_propi(const char *name, int64_t *result);
+  bool cricket_play_index(uint16_t index);
 ]])
 
 local C
@@ -65,5 +66,9 @@ function M.propi(name)
   local val = ffi.new("int64_t[1]")
   if C.cricket_propi(name, val) then return assert(tonumber(val[0])) end
 end
+
+---@param index integer @>=0
+---@return boolean
+function M.play_index(index) return C.cricket_play_index(index) end
 
 return M
