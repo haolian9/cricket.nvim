@@ -89,8 +89,13 @@ do
   function M.prop_playlist()
     local ptr = C.cricket_prop_playlist()
     if ptr == nil then return {} end
-    --todo: avoid ffi.string
-    return vim.json.decode(ffi.string(ptr))
+    local ok, playlist = pcall(function()
+      --todo: avoid ffi.string
+      return vim.json.decode(ffi.string(ptr))
+    end)
+    C.cricket_free(ptr)
+    if not ok then error(playlist) end
+    return playlist
   end
 end
 
