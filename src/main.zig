@@ -103,7 +103,7 @@ export fn cricket_cmd1(subcmd: [*:0]const u8) bool {
     return true;
 }
 
-fn propFilenameImpl(result: *[4096:0]u8) !void {
+fn propFilenameImpl() ![*c]u8 {
     if (ctx == null) return error.InitRequired;
 
     var pos: i64 = undefined;
@@ -111,18 +111,15 @@ fn propFilenameImpl(result: *[4096:0]u8) !void {
 
     var prop_buf: [32]u8 = undefined;
     const prop = try std.fmt.bufPrintZ(&prop_buf, "playlist/{d}/filename", .{pos});
-    const filename = c.mpv_get_property_string(ctx, prop.ptr);
-    defer c.mpv_free(filename);
-    if (filename == null) return error.PropUnavailable;
-    mem.copy(u8, result, mem.span(filename));
+    return c.mpv_get_property_string(ctx, prop.ptr);
 }
 
-export fn cricket_prop_filename(result: *[4096:0]u8) bool {
-    propFilenameImpl(result) catch |err| {
+/// caller should free the returned filename eventually
+export fn cricket_prop_filename() [*c]u8 {
+    return propFilenameImpl() catch |err| {
         log.debug("{!}", .{err});
-        return false;
+        return null;
     };
-    return true;
 }
 
 fn seekImpl(offset: i8) !void {
@@ -241,6 +238,7 @@ fn propPlaylistImpl() ![*c]u8 {
     return c.mpv_get_property_string(ctx, "playlist");
 }
 
+/// caller should free the returned filename eventually
 export fn cricket_prop_playlist() [*c]u8 {
     return propPlaylistImpl() catch |err| {
         log.debug("{!}", .{err});

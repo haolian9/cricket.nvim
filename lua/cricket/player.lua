@@ -9,7 +9,7 @@ ffi.cdef([[
   bool cricket_quit(void);
   bool cricket_playlist_switch(const char *path);
   bool cricket_cmd1(const char *subcmd);
-  bool cricket_prop_filename(char result[4096]);
+  char *cricket_prop_filename(void);
   bool cricket_toggle(const char *what);
   bool cricket_seek(int8_t offset);
   bool cricket_volume(int8_t offset);
@@ -54,8 +54,12 @@ function M.toggle(what) return C.cricket_toggle(what) end
 
 ---@return string?
 function M.prop_filename()
-  local buf = ffi.new("char[?]", 4096)
-  if C.cricket_prop_filename(buf) then return ffi.string(buf) end
+  local ptr = C.cricket_prop_filename()
+  if ptr == nil then return end
+  local ok, filename = pcall(function() return ffi.string(ptr) end)
+  C.cricket_free(ptr)
+  if not ok then error(filename) end
+  return filename
 end
 
 ---@param offset integer
