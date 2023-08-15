@@ -19,6 +19,7 @@ local player = require("cricket.player")
 local kite = require("kite")
 
 local api = vim.api
+local uv = vim.loop
 
 do --init
   player.init()
@@ -46,18 +47,12 @@ local iter_music_files
 do
   local allowed_exts = fn.toset({ ".mp3", ".m4a", ".flac" })
 
-  local function resolve_ext(path)
-    local at = strlib.rfind(path, ".")
-    if at == nil then return end
-    return string.sub(path, at)
-  end
-
   ---@param root string
   ---@return fun(): string? @generates absolute file paths
   function iter_music_files(root)
     local iter = fn.filtern(function(fname, ftype)
       if ftype ~= "file" then return false end
-      local ext = resolve_ext(fname)
+      local ext = fs.suffix(fname)
       if ext == nil then return false end
       return allowed_exts[string.lower(ext)]
     end, fs.iterdir(root))
@@ -120,12 +115,13 @@ do
     bo.modified = true
   end
 
-  function M.controller()
-    local bufnr
-    do
-      bufnr = Ephemeral(nil, get_playlist())
-      bufrename(bufnr, "cricket://controller")
-    end
+  local global_bufnr
+
+  local function load_buf()
+    if global_bufnr and api.nvim_buf_is_valid(global_bufnr) then return global_bufnr end
+
+    local bufnr = Ephemeral({ bufhidden = "hide" }, get_playlist())
+    bufrename(bufnr, "cricket://controller")
 
     do
       local bm = bufmap.wraps(bufnr)
