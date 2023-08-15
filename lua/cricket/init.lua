@@ -148,25 +148,62 @@ do
       bm.n("R", function() rhs_reload(bufnr) end)
     end
 
-    local winid
+    api.nvim_create_autocmd("winenter", {
+      buffer = bufnr,
+      callback = function()
+        assert(api.nvim_get_current_buf() == bufnr)
+        rhs_reload(bufnr)
+      end,
+    })
+
+    global_bufnr = bufnr
+    return bufnr
+  end
+
+  function M.controller()
+    local bufnr = load_buf()
+
     do
       local width = math.floor(vim.go.columns / 2)
       local height = vim.go.lines - 2 - vim.go.cmdheight - 1 -- border + cmdline + statusline; tab?
       local row, col = 0, 0
-      winid = api.nvim_open_win(bufnr, true, { relative = "editor", border = "single", width = width, height = height, row = row, col = col })
+      local winid = api.nvim_open_win(bufnr, true, { relative = "editor", border = "single", width = width, height = height, row = row, col = col })
       api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
     end
+  end
+end
 
-    do
-      api.nvim_create_autocmd("winenter", {
-        buffer = bufnr,
-        callback = function()
-          --todo: leaving another float win will not trigger this for the underlying floatwin?
-          if api.nvim_get_current_win() ~= winid then return end
-          assert(api.nvim_win_get_buf(winid) == bufnr)
-          rhs_reload(bufnr)
-        end,
-      })
+do
+  local timer = uv.new_timer()
+
+  local function resolve_track_name()
+    local full = player.prop_filename()
+    if full == nil then return "n/a" end
+    local stem = fs.stem(full)
+    return string.match(stem, "^%d*[- .]*(.+)")
+  end
+
+  local feedfile = fs.joinpath(vim.fn.stdpath('state'), 'cricket.obs')
+
+  local function op_feed()
+    uv.timer_start(timer, 0, 5 * 1000, function()
+      local file = assert(io.open(feedfile, "w"))
+      local ok, err = pcall(function() file:write(resolve_track_name()) end)
+      file:close()
+      if not ok then error(err) end
+    end)
+  end
+
+  local function op_stop() uv.timer_stop() end
+
+  ---@param op 'feed'|'stop'
+  function M.obs(op)
+    if op == "feed" then
+      op_feed()
+    elseif op == "stop" then
+      op_stop()
+    else
+      error("unknown op")
     end
   end
 end
