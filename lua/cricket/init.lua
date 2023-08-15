@@ -183,7 +183,7 @@ do
     return string.match(stem, "^%d*[- .]*(.+)")
   end
 
-  local feedfile = fs.joinpath(vim.fn.stdpath('state'), 'cricket.obs')
+  local feedfile = fs.joinpath(vim.fn.stdpath("state"), "cricket.obs")
 
   local function op_feed()
     uv.timer_start(timer, 0, 5 * 1000, function()
