@@ -17,6 +17,7 @@ local strlib = require("infra.strlib")
 
 local player = require("cricket.player")
 local kite = require("kite")
+local tui = require("tui")
 
 local api = vim.api
 local uv = vim.loop
@@ -92,8 +93,13 @@ function M.play_this()
   jelly.info("playing: %s", fs.basename(path))
 end
 
-function M.browse()
-  kite.fly(facts.root)
+---@param winid? integer
+function M.browse(winid)
+  if winid then
+    kite.land(facts.root)
+  else
+    kite.fly(facts.root)
+  end
   local bufnr = api.nvim_get_current_buf()
   assert(strlib.startswith(api.nvim_buf_get_name(bufnr), "kite://"))
   bufmap(bufnr, "n", "<cr>", function()
@@ -105,14 +111,11 @@ end
 
 do
   local function get_playlist()
-    return fn.tolist(fn.map(function(chirp) return chirp.filename end, player.prop_playlist()))
+    return fn.tolist(fn.map(function(chirp) return fs.stem(chirp.filename) end, player.prop_playlist()))
   end
 
   local function rhs_reload(bufnr)
-    local bo = prefer.buf(bufnr)
-    bo.modified = false
-    api.nvim_buf_set_lines(bufnr, 0, -1, false, get_playlist())
-    bo.modified = true
+    ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_playlist()) end)
   end
 
   local global_bufnr
@@ -136,7 +139,13 @@ do
         local index = api.nvim_win_get_cursor(0)[1] - 1
         player.play_index(index)
       end)
-      bm.n("x", function() assert(player.quit()) end)
+      bm.n("x", function()
+        tui.confirm({ prompt = "quit the player?" }, function(confirmed)
+          if not confirmed then return end
+          assert(player.quit())
+          jelly.info("you'll need to call player.init() manually")
+        end)
+      end)
       bm.n("-", function() player.volume(-5) end)
       bm.n("=", function() player.volume(5) end)
       bm.n("h", function() player.seek(-5) end)
@@ -144,7 +153,7 @@ do
       bm.n("<space>", function() player.toggle("pause") end)
       bm.n("m", function() player.toggle("mute") end)
       bm.n("r", function() player.toggle("loop-playlist") end)
-      bm.n("e", function() M.browse() end)
+      bm.n("e", function() M.browse(api.nvim_get_current_win()) end)
       bm.n("R", function() rhs_reload(bufnr) end)
     end
 
