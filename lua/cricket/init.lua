@@ -1,6 +1,5 @@
 local M = {}
 
-local bufpath = require("infra.bufpath")
 local bufrename = require("infra.bufrename")
 local coreutils = require("infra.coreutils")
 local ctx = require("infra.ctx")
@@ -23,6 +22,7 @@ local uv = vim.loop
 
 do --init
   player.init()
+  --although quitsema is being used, this is still necessary for :qa!
   api.nvim_create_autocmd("vimleave", { callback = function() player.quit() end })
 end
 

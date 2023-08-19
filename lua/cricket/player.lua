@@ -3,6 +3,7 @@ local M = {}
 local ffi = require("ffi")
 
 local fs = require("infra.fs")
+local quitsema = require("infra.quitsema")
 
 ffi.cdef([[
   bool cricket_init(void);
@@ -26,12 +27,25 @@ do
   C = ffi.load(fs.joinpath(root, "zig-out/lib/libcricket.so"), false)
 end
 
----@return boolean
-function M.init() return C.cricket_init() end
+do
+  local token = "cricket"
+  local acquired = false
 
----@return boolean
-function M.quit() return C.cricket_quit() end
+  --errs on failed
+  function M.init()
+    assert(C.cricket_init())
+    quitsema.acquire(token)
+    acquired = true
+  end
 
+  --errs on failed
+  function M.quit()
+    if not acquired then return end
+    assert(C.cricket_quit())
+    quitsema.release(token)
+    acquired = false
+  end
+end
 ---@param path string
 ---@return boolean
 function M.playlist_switch(path)
