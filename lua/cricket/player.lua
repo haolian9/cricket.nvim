@@ -2,8 +2,8 @@ local M = {}
 
 local ffi = require("ffi")
 
+local barrier = require("infra.barrier")
 local fs = require("infra.fs")
-local quitsema = require("infra.quitsema")
 
 ffi.cdef([[
   bool cricket_init(void);
@@ -34,7 +34,7 @@ do
   --errs on failed
   function M.init()
     assert(C.cricket_init())
-    quitsema.acquire(token)
+    barrier.acquire(token)
     acquired = true
   end
 
@@ -42,7 +42,7 @@ do
   function M.quit()
     if not acquired then return end
     assert(C.cricket_quit())
-    quitsema.release(token)
+    barrier.release(token)
     acquired = false
   end
 end
