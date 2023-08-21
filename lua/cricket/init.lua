@@ -2,6 +2,7 @@ local M = {}
 
 local bufrename = require("infra.bufrename")
 local ctx = require("infra.ctx")
+local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
@@ -103,9 +104,8 @@ do
 
   function M.controller()
     if bufnr == nil then bufnr = new_buf() end
-
-    local width, height, row, col = popupgeo.editor_central(0.6, 0.8)
-    local winid = api.nvim_open_win(bufnr, true, { relative = "editor", border = "single", width = width, height = height, row = row, col = col })
+    local winopts = dictlib.merged({ relative = "editor", border = "single" }, popupgeo.editor(0.6, 0.8))
+    local winid = api.nvim_open_win(bufnr, true, winopts)
     api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
   end
 end
@@ -144,62 +144,78 @@ do
   --todo: transparency
   --todo: make it eyecandy
 
-  local function global_status()
-    local lines = {}
-    do
-      local val = assert(player.propi("volume"))
-      table.insert(lines, string.format("%dv", val))
+  local get_lines
+  do
+    local function global_status()
+      local lines = {}
+      do
+        local val = assert(player.propi("volume"))
+        table.insert(lines, string.format("%dv", val))
+      end
+
+      local has_playlist, playlist
+      do
+        local path = player.playlist_current()
+        playlist = path and fs.stem(path) or "n/a"
+        has_playlist = path ~= nil
+      end
+
+      if has_playlist then
+        local val = player.propi("loop-times")
+        assert(val == -1 or val == 1)
+        if val == -1 then table.insert(lines, "loop") end
+      end
+
+      table.insert(lines, playlist)
+
+      return table.concat(lines, " ")
     end
 
-    local has_playlist, playlist
-    do
-      local path = player.playlist_current()
-      playlist = path and fs.stem(path) or "n/a"
-      has_playlist = path ~= nil
+    local function chirp_status()
+      local lines = {}
+
+      local has_chirp, chirp
+      do
+        local prop = player.prop_filename()
+        chirp = prop and fs.stem(prop) or "n/a"
+        has_chirp = prop ~= nil
+      end
+
+      if has_chirp then
+        local val = assert(player.propi("duration"))
+        table.insert(lines, string.format("%ds", val))
+      end
+
+      table.insert(lines, chirp)
+
+      return table.concat(lines, " ")
     end
 
-    if has_playlist then
-      local val = player.propi("loop-times")
-      assert(val == -1 or val == 1)
-      if val == -1 then table.insert(lines, "loop") end
-    end
-
-    table.insert(lines, playlist)
-
-    return table.concat(lines, " ")
-  end
-
-  local function chirp_status()
-    local lines = {}
-
-    local has_chirp, chirp
-    do
-      local prop = player.prop_filename()
-      chirp = prop and fs.stem(prop) or "n/a"
-      has_chirp = prop ~= nil
-    end
-
-    if has_chirp then
-      local val = assert(player.propi("duration"))
-      table.insert(lines, string.format("%ds", val))
-    end
-
-    table.insert(lines, chirp)
-
-    return table.concat(lines, " ")
+    function get_lines() return { global_status(), chirp_status() } end
   end
 
   function M.hud()
-    local lines = { global_status(), chirp_status() }
-    local bufnr = Ephemeral(nil, lines)
+    local lines = get_lines()
+
+    local bufnr
+    do
+      bufnr = Ephemeral({ bufhidden = "hide" }, lines)
+      handyclosekeys(bufnr)
+      bufmap(bufnr, "n", "r", function()
+        api.nvim_win_close(0, false)
+        M.hud()
+      end)
+    end
 
     do
-      local llen = assert(fn.max(fn.map(function(l) return #l end, lines)))
-      local height = #lines
-      local width = math.min(llen, vim.go.columns - 2) -- border
-      local row = vim.go.lines - vim.go.cmdheight - 1 - 2 - height -- cmdline+stl+border+height
-      local col = math.floor((vim.go.columns - width) / 2)
-      local winid = api.nvim_open_win(bufnr, false, { relative = "editor", width = width, height = height, row = row, col = col })
+      local winopts
+      do
+        local llen = assert(fn.max(fn.map(function(l) return #l end, lines)))
+        local height = #lines
+        local width = math.min(llen, vim.go.columns)
+        winopts = dictlib.merged({ relative = "editor" }, popupgeo.editor(width, height, "right", "top"))
+      end
+      local winid = api.nvim_open_win(bufnr, false, winopts)
       api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
     end
   end
