@@ -1,18 +1,17 @@
 local M = {}
 
 local bufrename = require("infra.bufrename")
-local coreutils = require("infra.coreutils")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
 local handyclosekeys = require("infra.handyclosekeys")
-local highlighter = require("infra.highlighter")
 local jelly = require("infra.jellyfish")("cricket", "debug")
 local bufmap = require("infra.keymap.buffer")
 local popupgeo = require("infra.popupgeo")
 local strlib = require("infra.strlib")
 
+local facts = require("cricket.facts")
 local player = require("cricket.player")
 local kite = require("kite")
 local tui = require("tui")
@@ -24,23 +23,6 @@ do --init
   player.init()
   --although barrier is being used, this is still necessary for :qa!
   api.nvim_create_autocmd("vimleave", { callback = function() player.quit() end })
-end
-
-local facts = {}
-do
-  do
-    facts.root = fs.joinpath(vim.fn.stdpath("state"), "cricket")
-    coreutils.mkdir(facts.root)
-  end
-  do
-    facts.floatwin_ns = api.nvim_create_namespace("cricket.floatwin")
-    local hi = highlighter(facts.floatwin_ns)
-    if vim.go.background == "light" then
-      hi("normalfloat", { fg = 8 })
-    else
-      hi("normalfloat", { fg = 7 })
-    end
-  end
 end
 
 ---@param winid? integer
@@ -60,20 +42,18 @@ function M.browse(winid)
 end
 
 do
-  local function get_lines()
+  local function get_chirps()
     return fn.tolist(fn.map(function(chirp) return fs.stem(chirp.filename) end, player.prop_playlist()))
   end
 
-  local function rhs_reload(bufnr)
-    ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_lines()) end)
+  local function rhs_refresh(bufnr)
+    local winid = api.nvim_get_current_win()
+    assert(api.nvim_win_get_buf(winid) == bufnr)
+    ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
   end
 
-  local global_bufnr
-
-  local function load_buf()
-    if global_bufnr and api.nvim_buf_is_valid(global_bufnr) then return global_bufnr end
-
-    local bufnr = Ephemeral({ bufhidden = "hide" }, get_lines())
+  local function new_buf()
+    local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false })
     bufrename(bufnr, "cricket://controller")
 
     do
@@ -105,23 +85,24 @@ do
       bm.n("m", function() player.toggle("mute") end)
       bm.n("r", function() player.toggle("loop-playlist") end)
       bm.n("e", function() M.browse(api.nvim_get_current_win()) end)
-      bm.n("R", function() rhs_reload(bufnr) end)
+      bm.n("R", function() rhs_refresh(bufnr) end)
     end
 
     api.nvim_create_autocmd({ "winenter", "bufwinenter" }, {
       buffer = bufnr,
       callback = function()
         assert(api.nvim_get_current_buf() == bufnr)
-        rhs_reload(bufnr)
+        rhs_refresh(bufnr)
       end,
     })
 
-    global_bufnr = bufnr
     return bufnr
   end
 
+  local bufnr
+
   function M.controller()
-    local bufnr = load_buf()
+    if bufnr == nil then bufnr = new_buf() end
 
     local width, height, row, col = popupgeo.editor_central(0.6, 0.8)
     local winid = api.nvim_open_win(bufnr, true, { relative = "editor", border = "single", width = width, height = height, row = row, col = col })
@@ -155,6 +136,73 @@ do
 
   ---@param op 'feed'|'stop'
   function M.obs(op) assert(handlers[op])() end
+end
+
+do
+  --todo: dedicated bufnr
+  --todo: update via an event
+  --todo: transparency
+  --todo: make it eyecandy
+
+  local function global_status()
+    local lines = {}
+    do
+      local val = assert(player.propi("volume"))
+      table.insert(lines, string.format("%dv", val))
+    end
+
+    local has_playlist, playlist
+    do
+      local path = player.playlist_current()
+      playlist = path and fs.stem(path) or "n/a"
+      has_playlist = path ~= nil
+    end
+
+    if has_playlist then
+      local val = player.propi("loop-times")
+      assert(val == -1 or val == 1)
+      if val == -1 then table.insert(lines, "loop") end
+    end
+
+    table.insert(lines, playlist)
+
+    return table.concat(lines, " ")
+  end
+
+  local function chirp_status()
+    local lines = {}
+
+    local has_chirp, chirp
+    do
+      local prop = player.prop_filename()
+      chirp = prop and fs.stem(prop) or "n/a"
+      has_chirp = prop ~= nil
+    end
+
+    if has_chirp then
+      local val = assert(player.propi("duration"))
+      table.insert(lines, string.format("%ds", val))
+    end
+
+    table.insert(lines, chirp)
+
+    return table.concat(lines, " ")
+  end
+
+  function M.hud()
+    local lines = { global_status(), chirp_status() }
+    local bufnr = Ephemeral(nil, lines)
+
+    do
+      local llen = assert(fn.max(fn.map(function(l) return #l end, lines)))
+      local height = #lines
+      local width = math.min(llen, vim.go.columns - 2) -- border
+      local row = vim.go.lines - vim.go.cmdheight - 1 - 2 - height -- cmdline+stl+border+height
+      local col = math.floor((vim.go.columns - width) / 2)
+      local winid = api.nvim_open_win(bufnr, false, { relative = "editor", width = width, height = height, row = row, col = col })
+      api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
+    end
+  end
 end
 
 return M

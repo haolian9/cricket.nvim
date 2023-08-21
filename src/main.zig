@@ -145,7 +145,7 @@ const allowed_toggles = std.ComptimeStringMap(void, .{
     .{"loop-playlist"},
 });
 
-var loop: bool = false; // a workaround to record loop-playlist since mpv does not expose it
+var loop: bool = false; // a workaround to record loop-times since mpv does not expose it based on loop-playlist
 
 fn toggleImpl(what: [*:0]const u8) !void {
     if (ctx == null) return error.InitRequired;
@@ -188,7 +188,7 @@ const allowed_propis = std.ComptimeStringMap(void, .{
     .{"volume"}, // 0-100 percent
     .{"duration"}, // Duration of the current file in seconds
     .{"percent-pos"}, // 0-100; Position in current file (0-100)
-    .{"loop-playlist"}, // -1 or 1
+    .{"loop-times"}, // -1 or 1
     .{"playlist-pos"}, // starts from 0
     .{"playlist-count"},
 });
@@ -198,7 +198,7 @@ fn propiImpl(name: [*:0]const u8, result: *i64) !void {
     if (!allowed_propis.has(mem.span(name))) return error.InvalidPropi;
 
     var val: i64 = undefined;
-    if (mem.eql(u8, mem.span(name), "loop-playlist")) {
+    if (mem.eql(u8, mem.span(name), "loop-times")) {
         val = if (loop) -1 else 1;
     } else {
         try checkError(c.mpv_get_property(ctx, name, c.MPV_FORMAT_INT64, &val));

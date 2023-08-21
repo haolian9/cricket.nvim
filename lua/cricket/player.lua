@@ -46,12 +46,26 @@ do
     acquired = false
   end
 end
----@param path string
----@return boolean
-function M.playlist_switch(path)
-  assert(path ~= nil and path ~= "")
-  assert(fs.exists(path))
-  return C.cricket_playlist_switch(path)
+
+do
+  local current
+
+  ---@param path string
+  ---@return boolean
+  function M.playlist_switch(path)
+    assert(path ~= nil and path ~= "")
+    assert(fs.exists(path))
+    local ok = C.cricket_playlist_switch(path)
+    if ok then current = path end
+    return ok
+  end
+
+  --get the current playlist's path
+  --
+  --impl notes:
+  --* mpv does not have such thing: https://github.com/mpv-player/mpv/issues/11269
+  --* having this in libmpv is inappropriate neither
+  function M.playlist_current() return current end
 end
 
 ---@param subcmd "playlist-shuffle"|"playlist-unshuffle"|"playlist-next"|"playlist-prev"|"playlist-clear"|"stop"
@@ -80,7 +94,7 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
----@param name "volume"|"duration"|"percent-pos"|"loop-playlist"
+---@param name "volume"|"duration"|"percent-pos"|"loop-times"
 ---@return integer?
 function M.propi(name)
   local val = ffi.new("int64_t[1]")
