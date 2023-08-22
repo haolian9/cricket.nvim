@@ -5,6 +5,8 @@ local ffi = require("ffi")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
 
+local api = vim.api
+
 ffi.cdef([[
   bool cricket_init(void);
   bool cricket_quit(void);
@@ -125,6 +127,12 @@ do
     if not ok then error(playlist) end
     return playlist
   end
+end
+
+do --init
+  M.init()
+  --although barrier is being used, this is still necessary for :qa!
+  api.nvim_create_autocmd("vimleave", { callback = function() M.quit() end })
 end
 
 return M
