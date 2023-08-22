@@ -3,7 +3,6 @@ local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
-local handyclosekeys = require("infra.handyclosekeys")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "debug")
 local bufmap = require("infra.keymap.buffer")
 local popupgeo = require("infra.popupgeo")
@@ -40,17 +39,21 @@ local function rhs_browse()
 end
 
 local function new_buf()
-  local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl" })
+  local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true })
 
   do
     local bm = bufmap.wraps(bufnr)
 
-    handyclosekeys(bufnr)
-
     bm.n("n", function() player.cmd1("playlist-next") end)
     bm.n("p", function() player.cmd1("playlist-prev") end)
-    bm.n("s", function() player.cmd1("playlist-shuffle") end)
-    bm.n("S", function() player.cmd1("playlist-unshuffle") end)
+    bm.n("s", function()
+      player.cmd1("playlist-shuffle")
+      rhs_refresh(bufnr)
+    end)
+    bm.n("S", function()
+      player.cmd1("playlist-unshuffle")
+      rhs_refresh(bufnr)
+    end)
     bm.n("<cr>", function()
       local index = api.nvim_win_get_cursor(0)[1] - 1
       player.play_index(index)
@@ -74,13 +77,7 @@ local function new_buf()
     bm.n("R", function() rhs_refresh(bufnr) end)
   end
 
-  api.nvim_create_autocmd({ "winenter", "bufwinenter" }, {
-    buffer = bufnr,
-    callback = function()
-      assert(api.nvim_get_current_buf() == bufnr)
-      rhs_refresh(bufnr)
-    end,
-  })
+  api.nvim_create_autocmd({ "winenter", "bufwinenter" }, { buffer = bufnr, callback = function() rhs_refresh(bufnr) end })
 
   return bufnr
 end
