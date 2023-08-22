@@ -24,5 +24,8 @@ do
 
   M.floatwin_ns = ns
 end
+
+M.obs_feedfile = fs.joinpath(vim.fn.stdpath("state"), "cricket.obs")
+
 return M
 
