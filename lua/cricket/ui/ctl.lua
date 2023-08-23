@@ -25,19 +25,6 @@ local function rhs_refresh(bufnr)
   ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
 end
 
-local function rhs_browse()
-  kite.land(facts.root)
-
-  local bufnr = api.nvim_get_current_buf()
-  assert(strlib.startswith(api.nvim_buf_get_name(bufnr), "kite://"))
-
-  bufmap(bufnr, "n", "<cr>", function()
-    local fname = strlib.lstrip(api.nvim_get_current_line(), " ")
-    assert(player.playlist_switch(fs.joinpath(facts.root, fname)))
-    jelly.info("playing: %s", fname)
-  end)
-end
-
 local function new_buf()
   local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true })
 
@@ -73,8 +60,24 @@ local function new_buf()
     bm.n("<space>", function() player.toggle("pause") end)
     bm.n("m", function() player.toggle("mute") end)
     bm.n("r", function() player.toggle("loop-playlist") end)
-    bm.n("e", rhs_browse)
+    bm.n("e", function()
+      kite.land(facts.root)
+
+      local kite_bufnr = api.nvim_get_current_buf()
+      assert(strlib.startswith(api.nvim_buf_get_name(kite_bufnr), "kite://"))
+
+      bufmap(kite_bufnr, "n", "<cr>", function()
+        local fname = strlib.lstrip(api.nvim_get_current_line(), " ")
+        assert(player.playlist_switch(fs.joinpath(facts.root, fname)))
+        jelly.info("playing: %s", fname)
+      end)
+    end)
     bm.n("R", function() rhs_refresh(bufnr) end)
+    bm.n("i", function()
+      local pos = player.propi("playlist-pos")
+      if pos == nil then return end
+      api.nvim_win_set_cursor(0, { pos + 1, 0 })
+    end)
   end
 
   api.nvim_create_autocmd({ "winenter", "bufwinenter" }, { buffer = bufnr, callback = function() rhs_refresh(bufnr) end })

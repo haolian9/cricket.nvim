@@ -96,7 +96,7 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
----@param name "volume"|"duration"|"percent-pos"|"loop-times"
+---@param name "volume"|"duration"|"percent-pos"|"loop-times"|"playlist-pos"|"playlist-count"
 ---@return integer?
 function M.propi(name)
   local val = ffi.new("int64_t[1]")
