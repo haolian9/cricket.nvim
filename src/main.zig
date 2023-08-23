@@ -189,7 +189,7 @@ const allowed_propis = std.ComptimeStringMap(void, .{
     .{"duration"}, // Duration of the current file in seconds
     .{"percent-pos"}, // 0-100; Position in current file (0-100)
     .{"loop-times"}, // -1 or 1
-    .{"playlist-pos"}, // starts from 0
+    .{"playlist-pos"}, // starts from 0; -1 when unavailable
     .{"playlist-count"},
 });
 

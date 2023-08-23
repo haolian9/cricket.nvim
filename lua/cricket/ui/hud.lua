@@ -74,7 +74,7 @@ do
   end)
 end
 
----toggle show a HUD
+---toggle show an unfocusable HUD
 return function()
   if winid and api.nvim_win_is_valid(winid) then return api.nvim_win_close(winid, false) end
 
