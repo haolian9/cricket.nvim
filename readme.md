@@ -1,19 +1,22 @@
 促织
 
-a mpv frontend built with nvim facilities
+an opinionated mpv frontend lives in nvim
 
 
 ## features/limits
-* run mpv as a daemon
+* run mpv in thread aside nvim
 * control mpv over ffi rather than ipc
-* first-class playlist, no operations on single track
-* every playlist is a file, edit it to change track orders
+* stateless across nvim restartings
+* first-class playlist, no operations against single track
+* all playlist are editable files
+* no responsibility of creating playlists
+* crude yet effecient UI, no fancy should be expected
 
 
 ## status
-* it is far from stable
+* it is usable to me finally
 * it uses ffi which may crash nvim often
-* its UX is quite uncomfortable right now
+* i keep polishing its UX
 
 
 ## prerequisites
@@ -26,7 +29,12 @@ a mpv frontend built with nvim facilities
 
 
 ## usage
-TBD
+* build: `zig build -Drelease-safe`
+* quick start
+    * `mkdir ~/.local/state/nvim/cricket` the library directory
+    * `ls /foo/album/*.mp3 > cricket/foo` to create a playlist
+    * `:lua require'cricket'.ctl()`, `e` to browse the library, `<cr>` to play a playlist
+* apis: `cricket.ui.*`, `cricket.player.*`
 
 ---
 
