@@ -122,7 +122,7 @@ do
     bm.n("R",       rhs.refresh)
     bm.n("i",       rhs.whereami)
     bm.n("o",       rhs.edit_playlist)
-    bm.n("g",       function() require("cricket.ui.hud")() end)
+    bm.n("<c-g>",   function() require("cricket.ui.hud").transient() end)
   end
 
   api.nvim_create_autocmd({ "winenter", "bufwinenter" }, { buffer = bufnr, callback = rhs.refresh })

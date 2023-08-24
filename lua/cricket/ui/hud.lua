@@ -1,3 +1,5 @@
+local M = {}
+
 local ctx = require("infra.ctx")
 local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
@@ -53,31 +55,45 @@ local function resolve_winopts(lines)
   local llen = assert(fn.max(fn.map(function(l) return api.nvim_strwidth(l) end, lines)))
   local height = #lines
   local width = math.min(llen, vim.go.columns)
-  return dictlib.merged({ relative = "editor", focusable = false }, popupgeo.editor(width, height, "right", "top"))
+  return dictlib.merged({ relative = "editor", focusable = false, zindex = 250 }, popupgeo.editor(width, height, "right", "top"))
 end
 
-local bufnr, winid, timer
+local bufnr, winid
 
 do
-  timer = uv.new_timer()
-  uv.timer_start(timer, 0, 5 * 1000, function()
+  local refresher = uv.new_timer()
+
+  uv.timer_start(refresher, 0, 5 * 1000, function()
     vim.schedule(function()
-      if not (bufnr and api.nvim_buf_is_valid(bufnr)) then return uv.timer_stop(timer) end
-      if not (winid and api.nvim_win_is_valid(winid)) then return uv.timer_stop(timer) end
+      if not (winid and api.nvim_win_is_valid(winid)) then return uv.timer_stop(refresher) end
       local lines = get_lines()
       ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, lines) end)
       ctx.landwincall(function() api.nvim_win_set_config(winid, resolve_winopts(lines)) end)
     end)
   end)
+
+  ---toggle an unfocusable HUD
+  function M.permanent()
+    if winid and api.nvim_win_is_valid(winid) then return api.nvim_win_close(winid, false) end
+
+    local lines = get_lines()
+    bufnr = Ephemeral({ name = "cricket://hud", handyclose = true }, lines)
+    winid = api.nvim_open_win(bufnr, false, resolve_winopts(lines))
+    api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
+    uv.timer_again(refresher)
+  end
 end
 
----toggle show an unfocusable HUD
-return function()
-  if winid and api.nvim_win_is_valid(winid) then return api.nvim_win_close(winid, false) end
+---<c-g> like
+function M.transient()
+  if winid and api.nvim_win_is_valid(winid) then return end
 
   local lines = get_lines()
   bufnr = Ephemeral({ name = "cricket://hud", handyclose = true }, lines)
   winid = api.nvim_open_win(bufnr, false, resolve_winopts(lines))
   api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
-  uv.timer_again(timer)
+  vim.defer_fn(function() api.nvim_win_close(winid, false) end, 3 * 1000)
 end
+
+return M
+
