@@ -67,6 +67,7 @@ do
   --impl notes:
   --* mpv does not have such thing: https://github.com/mpv-player/mpv/issues/11269
   --* having this in libmpv is inappropriate neither
+  ---@return string?
   function M.playlist_current() return current end
 end
 

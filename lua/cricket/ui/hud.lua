@@ -23,7 +23,7 @@ local function get_lines()
     --todo: shuffle
 
     local loop = player.propi("loop-times")
-    table.insert(parts, string.format("循环=%s", loop == -1 and "inf" or "1"))
+    table.insert(parts, string.format("循环=%s", loop == -1 and "是" or "否"))
 
     local duration = player.propi("duration")
     table.insert(parts, string.format("时长=%d", fn.nilor(duration, 0)))
@@ -31,16 +31,13 @@ local function get_lines()
     return table.concat(parts, " ")
   end)()
 
-  local has_playlist
   lines[#lines + 1] = (function()
     local path = player.playlist_current()
-    has_playlist = path ~= nil
-    if not has_playlist then return end
+    if path == nil then return end
     return fs.basename(path)
   end)()
 
   lines[#lines + 1] = (function()
-    if not has_playlist then return end
     local fname = player.prop_filename()
     if fname == nil then return end
     return fs.stem(fname)
