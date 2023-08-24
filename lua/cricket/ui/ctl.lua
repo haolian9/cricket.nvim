@@ -26,7 +26,7 @@ local bufnr, winid, rhs
 do
   rhs = {}
   function rhs.refresh()
-    --a workaround for https://github.com/neovim/neovim/issues/24843
+    --necessary checks for https://github.com/neovim/neovim/issues/24843
     if api.nvim_get_current_win() ~= winid then return end
     if api.nvim_win_get_buf(winid) ~= bufnr then return end
     ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
@@ -122,6 +122,7 @@ do
     bm.n("R",       rhs.refresh)
     bm.n("i",       rhs.whereami)
     bm.n("o",       rhs.edit_playlist)
+    bm.n("g",       function() require("cricket.ui.hud")() end)
   end
 
   api.nvim_create_autocmd({ "winenter", "bufwinenter" }, { buffer = bufnr, callback = rhs.refresh })
