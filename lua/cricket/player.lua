@@ -97,7 +97,7 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
----@param name "volume"|"duration"|"percent-pos"|"loop-times"|"playlist-pos"|"playlist-count"
+---@param name "volume"|"duration"|"percent-pos"|"playlist-pos"|"playlist-count"|"loop-playlist"|"mute"|"pause"
 ---@return integer?
 function M.propi(name)
   local val = ffi.new("int64_t[1]")
@@ -128,6 +128,11 @@ do
     if not ok then error(playlist) end
     return playlist
   end
+end
+
+function M.unpause()
+  if M.propi("pause") ~= 1 then return end
+  M.toggle("pause")
 end
 
 do --init

@@ -1,24 +1,66 @@
 local ctx = require("infra.ctx")
-local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "debug")
 local bufmap = require("infra.keymap.buffer")
-local popupgeo = require("infra.popupgeo")
 local prefer = require("infra.prefer")
-local strlib = require("infra.strlib")
+local rifts = require("infra.rifts")
 
 local facts = require("cricket.facts")
 local player = require("cricket.player")
-local kite = require("kite")
 local tui = require("tui")
 
 local api = vim.api
 
 local function get_chirps()
   return fn.tolist(fn.map(function(chirp) return fs.stem(chirp.filename) end, player.prop_playlist()))
+end
+
+local browse_library
+do
+  local editor = {}
+  do
+    --todo: reload playlist if it's beeing played
+    function editor.tab(path)
+      ex("tabedit", path)
+      local bufnr = api.nvim_get_current_buf()
+      prefer.bo(bufnr, "bufhidden", "wipe")
+    end
+
+    function editor.floatwin(path)
+      local bufnr = vim.fn.bufadd(path)
+      prefer.bo(bufnr, "bufhidden", "wipe")
+      prefer.bo(bufnr, "buflisted", false)
+      rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
+    end
+  end
+
+  local function resolve_cursor_path()
+    local line = api.nvim_get_current_line()
+    assert(line ~= "")
+    return fs.joinpath(facts.root, line)
+  end
+
+  local function rhs_play() require("cricket.player").playlist_switch(resolve_cursor_path()) end
+  local function rhs_floatedit() editor.floatwin(resolve_cursor_path()) end
+
+  function browse_library()
+    local lines = fn.tolist(fs.iterfiles(facts.root))
+
+    local bufnr = Ephemeral({ handyclose = true, name = "cricket://library" }, lines)
+
+    local bm = bufmap.wraps(bufnr)
+    bm.n("<cr>", rhs_play)
+    bm.n("a", rhs_floatedit)
+    bm.n("e", rhs_floatedit)
+    bm.n("i", rhs_floatedit)
+    bm.n("o", rhs_floatedit)
+    bm.n("t", function() editor.tab(resolve_cursor_path()) end)
+
+    rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
+  end
 end
 
 local bufnr, winid, rhs
@@ -30,19 +72,6 @@ do
     if api.nvim_get_current_win() ~= winid then return end
     if api.nvim_win_get_buf(winid) ~= bufnr then return end
     ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
-  end
-
-  function rhs.browse_library()
-    kite.land(facts.root)
-
-    local kite_bufnr = api.nvim_get_current_buf()
-    assert(strlib.startswith(api.nvim_buf_get_name(kite_bufnr), "kite://"))
-
-    bufmap(kite_bufnr, "n", "<cr>", function()
-      local fname = strlib.lstrip(api.nvim_get_current_line(), " ")
-      assert(player.playlist_switch(fs.joinpath(facts.root, fname)))
-      jelly.info("playing: %s", fname)
-    end)
   end
 
   function rhs.whereami()
@@ -84,7 +113,7 @@ do
   function rhs.play_cursor()
     local index = api.nvim_win_get_cursor(0)[1] - 1
     player.play_index(index)
-    --todo: resume if paused
+    player.unpause()
   end
 
   function rhs.shuffle()
@@ -118,7 +147,7 @@ do
     bm.n("<space>", function() player.toggle("pause") end)
     bm.n("m",       function() player.toggle("mute") end)
     bm.n("r",       function() player.toggle("loop-playlist") end)
-    bm.n("e",       rhs.browse_library)
+    bm.n("e",       browse_library)
     bm.n("R",       rhs.refresh)
     bm.n("i",       rhs.whereami)
     bm.n("o",       rhs.edit_playlist)
@@ -132,7 +161,5 @@ return function()
   assert(api.nvim_buf_is_valid(bufnr))
   if winid and api.nvim_win_is_valid(winid) then return api.nvim_win_set_buf(winid, bufnr) end
 
-  local winopts = dictlib.merged({ relative = "editor", border = "single" }, popupgeo.editor(0.6, 0.8, "mid", "mid", 1))
-  winid = api.nvim_open_win(bufnr, true, winopts)
-  api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
+  winid = rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
 end

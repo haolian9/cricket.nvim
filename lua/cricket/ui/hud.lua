@@ -3,11 +3,10 @@ local M = {}
 local ctx = require("infra.ctx")
 local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
+local rifts = require("infra.rifts")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
-local popupgeo = require("infra.popupgeo")
 
-local facts = require("cricket.facts")
 local player = require("cricket.player")
 
 local api = vim.api
@@ -24,8 +23,8 @@ local function get_lines()
 
     --todo: shuffle
 
-    local loop = player.propi("loop-times")
-    table.insert(parts, string.format("循环=%s", loop == -1 and "是" or "否"))
+    local loop = player.propi("loop-playlist")
+    table.insert(parts, string.format("循环=%s", loop == 1 and "是" or "否"))
 
     local duration = player.propi("duration")
     table.insert(parts, string.format("时长=%d", fn.nilor(duration, 0)))
@@ -55,7 +54,7 @@ local function resolve_winopts(lines)
   local llen = assert(fn.max(fn.map(function(l) return api.nvim_strwidth(l) end, lines)))
   local height = #lines
   local width = math.min(llen, vim.go.columns)
-  return dictlib.merged({ relative = "editor", focusable = false, zindex = 250 }, popupgeo.editor(width, height, "right", "top"))
+  return dictlib.merged({ relative = "editor", focusable = false, zindex = 250 }, rifts.geo.editor(width, height, "right", "top"))
 end
 
 local bufnr, winid
@@ -78,8 +77,7 @@ do
 
     local lines = get_lines()
     bufnr = Ephemeral({ name = "cricket://hud", handyclose = true }, lines)
-    winid = api.nvim_open_win(bufnr, false, resolve_winopts(lines))
-    api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
+    winid = rifts.open.fragment(bufnr, false, resolve_winopts(lines))
     uv.timer_again(refresher)
   end
 end
@@ -90,8 +88,7 @@ function M.transient()
 
   local lines = get_lines()
   bufnr = Ephemeral({ name = "cricket://hud", handyclose = true }, lines)
-  winid = api.nvim_open_win(bufnr, false, resolve_winopts(lines))
-  api.nvim_win_set_hl_ns(winid, facts.floatwin_ns)
+  winid = rifts.open.fragment(bufnr, false, resolve_winopts(lines))
   vim.defer_fn(function() api.nvim_win_close(winid, false) end, 3 * 1000)
 end
 
