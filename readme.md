@@ -6,7 +6,7 @@ an opinionated mpv frontend lives in nvim
 ## features/limits
 * run mpv in thread aside nvim
 * control mpv over ffi rather than ipc
-* stateless across nvim restartings
+* stateless across nvim restarting
 * first-class playlist, no operations against single track
 * all playlist are editable files
 * no responsibility of creating playlists
@@ -14,27 +14,31 @@ an opinionated mpv frontend lives in nvim
 
 
 ## status
-* it is usable to me finally
+* it just works (tm)
 * it uses ffi which may crash nvim often
-* i keep polishing its UX
+* it is feature-complete to me
 
 
 ## prerequisites
-* mpv/libmpv 0.35.1
+* i live on archlinux, so i always chase after the latest stable versions.
+* mpv/libmpv 0.36.0
 * nvim 0.9.*
 * zig 0.10.*
 * haolian9/infra.nvim
-* haolian9/kite.nvim
 * haolian9/tui.nvim
 
 
-## usage
-* build: `zig build -Drelease-safe`
-* quick start
-    * `mkdir ~/.local/state/nvim/cricket` the library directory
-    * `ls /foo/album/*.mp3 > cricket/foo` to create a playlist
-    * `:lua require'cricket'.ctl()`, `e` to browse the library, `<cr>` to play a playlist
-* apis: `cricket.ui.*`, `cricket.player.*`
+## build
+`zig build -Drelease-safe`
+
+## quick start
+* Cricket has a library concept
+* `$ lib=~/.local/state/nvim/cricket`
+* `$ mkdir $lib`
+* `$ find /foo/album -name '*.mp3' > $lib/foo`
+* `:lua require'cricket'.ctl()`, `e` to browse the library, `<cr>` to play a playlist
+* see more keymaps in `cricket.ui.ctl`
+* see more operations to the mpv player in `cricket.player`
 
 ---
 
