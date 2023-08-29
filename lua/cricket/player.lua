@@ -2,6 +2,7 @@ local M = {}
 
 local ffi = require("ffi")
 
+local Augroup = require("infra.Augroup")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
 
@@ -138,7 +139,8 @@ end
 do --init
   M.init()
   --although barrier is being used, this is still necessary for :qa!
-  api.nvim_create_autocmd("vimleave", { callback = function() M.quit() end })
+  local aug = Augroup("cricket://player")
+  aug:once("vimleave", { callback = function() M.quit() end })
 end
 
 return M

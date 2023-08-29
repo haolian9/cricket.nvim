@@ -1,3 +1,4 @@
+local Augroup = require("infra.Augroup")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
@@ -67,10 +68,8 @@ local bufnr, winid, rhs
 
 do
   rhs = {}
+
   function rhs.refresh()
-    --necessary checks for https://github.com/neovim/neovim/issues/24843
-    if api.nvim_get_current_win() ~= winid then return end
-    if api.nvim_win_get_buf(winid) ~= bufnr then return end
     ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
   end
 
@@ -91,6 +90,7 @@ do
 
     api.nvim_create_autocmd("bufwipeout", {
       buffer = this_bufnr,
+      once = true,
       callback = function()
         if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
 
@@ -153,13 +153,23 @@ do
     bm.n("o",       rhs.edit_playlist)
     bm.n("<c-g>",   function() require("cricket.ui.hud").transient() end)
   end
-
-  api.nvim_create_autocmd({ "winenter", "bufwinenter" }, { buffer = bufnr, callback = rhs.refresh })
 end
 
 return function()
   assert(api.nvim_buf_is_valid(bufnr))
   if winid and api.nvim_win_is_valid(winid) then return api.nvim_win_set_buf(winid, bufnr) end
+
+  local aug = Augroup("cricket://ctl")
+  aug:repeats("winenter", {
+    callback = function()
+      if not (winid and api.nvim_win_is_valid(winid)) then return true end
+      do --necessary checks for https://github.com/neovim/neovim/issues/24843
+        if api.nvim_get_current_win() ~= winid then return end
+        if api.nvim_win_get_buf(winid) ~= bufnr then return end
+      end
+      rhs.refresh()
+    end,
+  })
 
   winid = rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
 end
