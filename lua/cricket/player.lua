@@ -6,8 +6,6 @@ local Augroup = require("infra.Augroup")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
 
-local api = vim.api
-
 ffi.cdef([[
   bool cricket_init(void);
   bool cricket_quit(void);
