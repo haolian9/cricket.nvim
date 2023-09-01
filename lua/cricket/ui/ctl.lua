@@ -22,23 +22,6 @@ end
 
 local browse_library
 do
-  local editor = {}
-  do
-    --todo: reload playlist if it's beeing played
-    function editor.tab(path)
-      ex("tabedit", path)
-      local bufnr = api.nvim_get_current_buf()
-      prefer.bo(bufnr, "bufhidden", "wipe")
-    end
-
-    function editor.floatwin(path)
-      local bufnr = vim.fn.bufadd(path)
-      prefer.bo(bufnr, "bufhidden", "wipe")
-      prefer.bo(bufnr, "buflisted", false)
-      rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
-    end
-  end
-
   local function resolve_cursor_path()
     local line = api.nvim_get_current_line()
     assert(line ~= "")
@@ -46,7 +29,19 @@ do
   end
 
   local function rhs_play() require("cricket.player").playlist_switch(resolve_cursor_path()) end
-  local function rhs_floatedit() editor.floatwin(resolve_cursor_path()) end
+
+  local function rhs_floatedit()
+    local bufnr = vim.fn.bufadd(resolve_cursor_path())
+    prefer.bo(bufnr, "bufhidden", "wipe")
+    prefer.bo(bufnr, "buflisted", false)
+    rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
+  end
+
+  local function rhs_tabedit()
+    ex("tabedit", resolve_cursor_path())
+    local bufnr = api.nvim_get_current_buf()
+    prefer.bo(bufnr, "bufhidden", "wipe")
+  end
 
   function browse_library()
     local lines = fn.tolist(fs.iterfiles(facts.root))
@@ -59,33 +54,10 @@ do
     bm.n("e", rhs_floatedit)
     bm.n("i", rhs_floatedit)
     bm.n("o", rhs_floatedit)
-    bm.n("t", function() editor.tab(resolve_cursor_path()) end)
+    bm.n("t", rhs_tabedit)
 
     rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
   end
-end
-
-local function edit_playlist()
-  local path = player.playlist_current()
-  if path == nil then return jelly.info("no playlist available") end
-
-  ex("tabedit", path)
-
-  local this_bufnr = api.nvim_get_current_buf()
-  prefer.bo(this_bufnr, "bufhidden", "wipe")
-
-  api.nvim_create_autocmd("bufwipeout", {
-    buffer = this_bufnr,
-    once = true,
-    callback = function()
-      if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
-
-      local same = fn.iter_equals(player.prop_playlist(), api.nvim_buf_get_lines(this_bufnr, 0, -1, false))
-      if same then return jelly.info("no reloading, %s has no changes", fs.basename(path)) end
-
-      player.playlist_switch(path)
-    end,
-  })
 end
 
 ---@param bufnr integer
@@ -93,23 +65,38 @@ local function refresh_buf(bufnr)
   ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, get_chirps()) end)
 end
 
-local RHS
+local new_buf
 do
-  ---@class cricket.ui.ctl.RHS
-  ---@field bufnr integer
-  Prototype = {}
+  local function rhs_edit_playlist()
+    local path = player.playlist_current()
+    if path == nil then return jelly.info("no playlist available") end
 
-  Prototype.__index = Prototype
+    ex("tabedit", path)
 
-  function Prototype:refresh() refresh_buf(self.bufnr) end
+    local this_bufnr = api.nvim_get_current_buf()
+    prefer.bo(this_bufnr, "bufhidden", "wipe")
 
-  function Prototype:whereami()
+    api.nvim_create_autocmd("bufwipeout", {
+      buffer = this_bufnr,
+      once = true,
+      callback = function()
+        if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
+
+        local same = fn.iter_equals(player.prop_playlist(), api.nvim_buf_get_lines(this_bufnr, 0, -1, false))
+        if same then return jelly.info("no reloading, %s has no changes", fs.basename(path)) end
+
+        player.playlist_switch(path)
+      end,
+    })
+  end
+
+  local function rhs_whereami()
     local pos = player.propi("playlist-pos")
     if not (pos and pos ~= -1) then return end
     api.nvim_win_set_cursor(0, { pos + 1, 0 })
   end
 
-  function Prototype:quit()
+  local function rhs_quit()
     tui.confirm({ prompt = "quit the player?" }, function(confirmed)
       if not confirmed then return end
       jelly.info("you'll need to call player.init() manually")
@@ -117,58 +104,51 @@ do
     end)
   end
 
-  function Prototype:play_cursor()
+  local function rhs_play_cursor()
     local index = api.nvim_win_get_cursor(0)[1] - 1
     player.play_index(index)
     player.unpause()
   end
 
-  function Prototype:shuffle()
-    player.cmd1("playlist-shuffle")
-    self:refresh()
+  ---@return integer
+  function new_buf()
+    ---@diagnostic disable-next-line: redefined-local
+    local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true }, get_chirps())
+
+    -- stylua: ignore
+    do
+      local bm = bufmap.wraps(bufnr)
+
+      local function with_refresh(f, ...)
+        local args = { ... }
+        return function()
+          f(unpack(args))
+          refresh_buf(bufnr)
+        end
+      end
+
+      bm.n("n",       function() player.cmd1("playlist-next") end)
+      bm.n("p",       function() player.cmd1("playlist-prev") end)
+      bm.n("s",       with_refresh(player.cmd1, "playlist-shuffle"))
+      bm.n("S",       with_refresh(player.cmd1, "playlist-unshuffle"))
+      bm.n("<cr>",    rhs_play_cursor)
+      bm.n("x",       rhs_quit)
+      bm.n("-",       function() player.volume(-5) end)
+      bm.n("=",       function() player.volume(5) end)
+      bm.n("h",       function() player.seek(-5) end)
+      bm.n("l",       function() player.seek(5) end)
+      bm.n("<space>", function() player.toggle("pause") end)
+      bm.n("m",       function() player.toggle("mute") end)
+      bm.n("r",       function() player.toggle("loop-playlist") end)
+      bm.n("e",       browse_library)
+      bm.n("R",       function() refresh_buf(bufnr) end)
+      bm.n("i",       rhs_whereami)
+      bm.n("o",       rhs_edit_playlist)
+      bm.n("<c-g>",   hud.transient)
+    end
+
+    return bufnr
   end
-
-  function Prototype:unshuffle()
-    player.cmd1("playlist-unshuffle")
-    self:refresh()
-  end
-
-  ---@param bufnr integer
-  ---@return cricket.ui.ctl.RHS
-  function RHS(bufnr) return setmetatable({ bufnr = bufnr }, Prototype) end
-end
-
----@return integer
-local function new_buf()
-  ---@diagnostic disable-next-line: redefined-local
-  local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true }, get_chirps())
-
-  -- stylua: ignore
-  do
-    local bm = bufmap.wraps(bufnr)
-    local rhs = RHS(bufnr)
-
-    bm.n("n",       function() player.cmd1("playlist-next") end)
-    bm.n("p",       function() player.cmd1("playlist-prev") end)
-    bm.n("s",       rhs.shuffle)
-    bm.n("S",       rhs.unshuffle)
-    bm.n("<cr>",    rhs.play_cursor)
-    bm.n("x",       rhs.quit)
-    bm.n("-",       function() player.volume(-5) end)
-    bm.n("=",       function() player.volume(5) end)
-    bm.n("h",       function() player.seek(-5) end)
-    bm.n("l",       function() player.seek(5) end)
-    bm.n("<space>", function() player.toggle("pause") end)
-    bm.n("m",       function() player.toggle("mute") end)
-    bm.n("r",       function() player.toggle("loop-playlist") end)
-    bm.n("e",       browse_library)
-    bm.n("R",       rhs.refresh)
-    bm.n("i",       rhs.whereami)
-    bm.n("o",       edit_playlist)
-    bm.n("<c-g>",   hud.transient)
-  end
-
-  return bufnr
 end
 
 local bufnr, winid
