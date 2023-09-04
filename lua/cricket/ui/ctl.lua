@@ -127,24 +127,25 @@ do
         end
       end
 
-      bm.n("n",       function() player.cmd1("playlist-next") end)
-      bm.n("p",       function() player.cmd1("playlist-prev") end)
-      bm.n("s",       with_refresh(player.cmd1, "playlist-shuffle"))
-      bm.n("S",       with_refresh(player.cmd1, "playlist-unshuffle"))
       bm.n("<cr>",    rhs_play_cursor)
-      bm.n("x",       rhs_quit)
       bm.n("-",       function() player.volume(-5) end)
       bm.n("=",       function() player.volume(5) end)
-      bm.n("h",       function() player.seek(-5) end)
-      bm.n("l",       function() player.seek(5) end)
       bm.n("<space>", function() player.toggle("pause") end)
       bm.n("m",       function() player.toggle("mute") end)
-      bm.n("r",       function() player.toggle("loop-playlist") end)
-      bm.n("e",       browse_library)
-      bm.n("R",       function() refresh_buf(bufnr) end)
+      bm.n("r",       function() refresh_buf(bufnr) end)
+      bm.n("<c-g>",   hud.transient)
       bm.n("i",       rhs_whereami)
       bm.n("o",       rhs_edit_playlist)
-      bm.n("<c-g>",   hud.transient)
+      --防误触
+      bm.n("gh",      function() player.seek(-5) end)
+      bm.n("gl",      function() player.seek(5) end)
+      bm.n("gn",      function() player.cmd1("playlist-next") end)
+      bm.n("gp",      function() player.cmd1("playlist-prev") end)
+      bm.n("gs",      with_refresh(player.cmd1, "playlist-shuffle"))
+      bm.n("gS",      with_refresh(player.cmd1, "playlist-unshuffle"))
+      bm.n("gx",      rhs_quit)
+      bm.n("gr",      function() player.toggle("loop-playlist") end)
+      bm.n("ge",      browse_library)
     end
 
     return bufnr
