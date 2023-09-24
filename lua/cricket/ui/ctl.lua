@@ -12,7 +12,7 @@ local rifts = require("infra.rifts")
 local facts = require("cricket.facts")
 local player = require("cricket.player")
 local hud = require("cricket.ui.hud")
-local tui = require("tui")
+local puff = require("puff")
 
 local api = vim.api
 
@@ -97,7 +97,7 @@ do
   end
 
   local function rhs_quit()
-    tui.confirm({ prompt = "quit the player?" }, function(confirmed)
+    puff.confirm({ prompt = "quit the player?" }, function(confirmed)
       if not confirmed then return end
       jelly.info("you'll need to call player.init() manually")
       player.quit()
