@@ -132,17 +132,17 @@ var toggles = [_]struct { k: []const u8, v: bool }{
     .{ .k = "mute", .v = false },
     .{ .k = "pause", .v = false },
     .{ .k = "loop-playlist", .v = false },
+    // todo: loop-playlist and loop-file should be mutual exclusive
+    .{ .k = "loop-file", .v = false },
 };
 
 fn findToggleIndex(key: []const u8) ?usize {
-    for (toggles) |t, idx| {
+    for (toggles, 0..) |t, idx| {
         if (!mem.eql(u8, t.k, key)) continue;
         return idx;
     }
     return null;
 }
-
-var loop: bool = false; // a workaround to record loop-times since mpv does not expose it based on loop-playlist
 
 fn toggleImpl(what: [*:0]const u8) !void {
     if (ctx == null) return error.InitRequired;
@@ -195,7 +195,7 @@ fn propiImpl(cname: [*:0]const u8, result: *i64) !void {
 
     // try toggles first
     if (findToggleIndex(mem.span(cname))) |ti| {
-        result.* = @boolToInt(toggles[ti].v);
+        result.* = @intFromBool(toggles[ti].v);
         return;
     }
 

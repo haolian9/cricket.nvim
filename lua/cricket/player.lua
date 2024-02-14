@@ -78,7 +78,7 @@ function M.cmd1(subcmd) return C.cricket_cmd1(subcmd) end
 ---@return boolean
 function M.seek(offset) return C.cricket_seek(offset) end
 
----@param what "mute"|"pause"|"loop-playlist"
+---@param what "mute"|"pause"|"loop-playlist"|"loop-file"
 ---@return boolean
 function M.toggle(what) return C.cricket_toggle(what) end
 
@@ -96,7 +96,7 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
----@param name "volume"|"duration"|"percent-pos"|"playlist-pos"|"playlist-count"|"loop-playlist"|"mute"|"pause"
+---@param name "volume"|"duration"|"percent-pos"|"playlist-pos"|"playlist-count"|"loop-playlist"|"loop-file"|"mute"|"pause"
 ---@return integer?
 function M.propi(name)
   local val = ffi.new("int64_t[1]")
@@ -138,7 +138,7 @@ do --init
   M.init()
   --although barrier is being used, this is still necessary for :qa!
   local aug = Augroup("cricket://player")
-  aug:once("vimleave", { callback = function() M.quit() end })
+  aug:once("VimLeave", { callback = function() M.quit() end })
 end
 
 return M

@@ -23,7 +23,7 @@ local handlers = {
       if not ok then error(err) end
     end)
   end,
-  stop = function() uv.timer_stop() end,
+  stop = function() uv.timer_stop(timer) end,
 }
 
 ---@param op 'feed'|'stop'

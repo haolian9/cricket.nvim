@@ -3,9 +3,9 @@ local M = {}
 local ctx = require("infra.ctx")
 local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
-local rifts = require("infra.rifts")
 local fn = require("infra.fn")
 local fs = require("infra.fs")
+local rifts = require("infra.rifts")
 
 local player = require("cricket.player")
 
@@ -23,8 +23,11 @@ local function get_lines()
 
     --todo: shuffle
 
-    local loop = player.propi("loop-playlist")
-    table.insert(parts, string.format("循环=%s", loop == 1 and "是" or "否"))
+    local loops = {
+      player.propi("loop-file") == 1 and "是" or "否",
+      player.propi("loop-playlist") == 1 and "是" or "否",
+    }
+    table.insert(parts, string.format("循环=%s,%s", unpack(loops)))
 
     local duration = player.propi("duration")
     table.insert(parts, string.format("时长=%d", fn.nilor(duration, 0)))

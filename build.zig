@@ -1,23 +1,18 @@
 const std = @import("std");
 
 pub fn build(b: *std.build.Builder) void {
-    // Standard release options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{});
 
     {
-        const lib = b.addSharedLibrary("cricket", "src/main.zig", .unversioned);
-        lib.setBuildMode(mode);
-        lib.linkLibC();
-        lib.linkSystemLibrary("mpv");
-        lib.install();
-    }
-
-    {
-        const main_tests = b.addTest("src/main.zig");
-        main_tests.setBuildMode(mode);
-
-        const test_step = b.step("test", "Run library tests");
-        test_step.dependOn(&main_tests.step);
+        const so = b.addSharedLibrary(.{
+            .name = "cricket",
+            .target = target,
+            .root_source_file = .{ .path = "src/main.zig" },
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        so.linkSystemLibrary("mpv");
+        b.installArtifact(so);
     }
 }

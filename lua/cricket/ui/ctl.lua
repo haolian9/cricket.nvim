@@ -28,7 +28,10 @@ do
     return fs.joinpath(facts.root, line)
   end
 
-  local function rhs_play() require("cricket.player").playlist_switch(resolve_cursor_path()) end
+  local function rhs_play()
+    player.playlist_switch(resolve_cursor_path())
+    player.play_index(0)
+  end
 
   local function rhs_floatedit()
     local bufnr = vim.fn.bufadd(resolve_cursor_path())
@@ -127,25 +130,27 @@ do
         end
       end
 
+      bm.n("r",       function() refresh_buf(bufnr) end)
+      bm.n("<c-g>",   hud.transient)
+      bm.n("i",       rhs_whereami)
+      bm.n("e",       rhs_edit_playlist)
+      bm.n("o",       browse_library)
+
       bm.n("<cr>",    rhs_play_cursor)
       bm.n("-",       function() player.volume(-5) end)
       bm.n("=",       function() player.volume(5) end)
       bm.n("<space>", function() player.toggle("pause") end)
       bm.n("m",       function() player.toggle("mute") end)
-      bm.n("r",       function() refresh_buf(bufnr) end)
-      bm.n("<c-g>",   hud.transient)
-      bm.n("i",       rhs_whereami)
-      bm.n("o",       rhs_edit_playlist)
-      --防误触
-      bm.n("gh",      function() player.seek(-5) end)
-      bm.n("gl",      function() player.seek(5) end)
-      bm.n("gn",      function() player.cmd1("playlist-next") end)
-      bm.n("gp",      function() player.cmd1("playlist-prev") end)
-      bm.n("gs",      with_refresh(player.cmd1, "playlist-shuffle"))
-      bm.n("gS",      with_refresh(player.cmd1, "playlist-unshuffle"))
-      bm.n("gx",      rhs_quit)
-      bm.n("gr",      function() player.toggle("loop-playlist") end)
-      bm.n("ge",      browse_library)
+      bm.n("h",       function() player.seek(-5) end)
+      bm.n("l",       function() player.seek(5) end)
+      bm.n("n",       function() player.cmd1("playlist-next") end)
+      bm.n("p",       function() player.cmd1("playlist-prev") end)
+      bm.n("s",       with_refresh(player.cmd1, "playlist-shuffle"))
+      bm.n("S",       with_refresh(player.cmd1, "playlist-unshuffle"))
+      bm.n("r",       function() player.toggle("loop-file") end)
+      bm.n("R",       function() player.toggle("loop-playlist") end)
+      bm.n("x",       rhs_quit)
+
     end
 
     return bufnr
@@ -162,7 +167,7 @@ return function()
   winid = rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
 
   local aug = Augroup.win(winid, true)
-  aug:repeats("winenter", {
+  aug:repeats("WinEnter", {
     callback = function()
       do --necessary checks for https://github.com/neovim/neovim/issues/24843
         if api.nvim_get_current_win() ~= winid then return end
