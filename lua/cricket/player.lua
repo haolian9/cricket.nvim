@@ -51,13 +51,13 @@ end
 do
   local current
 
-  ---@param path string
+  ---@param fpath string
   ---@return boolean
-  function M.playlist_switch(path)
-    assert(path ~= nil and path ~= "")
-    assert(fs.exists(path))
-    local ok = C.cricket_playlist_switch(path)
-    if ok then current = path end
+  function M.playlist_switch(fpath)
+    assert(fpath ~= nil and fpath ~= "")
+    assert(fs.file_exists(fpath))
+    local ok = C.cricket_playlist_switch(fpath)
+    if ok then current = fpath end
     return ok
   end
 
