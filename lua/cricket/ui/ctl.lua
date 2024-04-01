@@ -130,7 +130,7 @@ do
         end
       end
 
-      bm.n("r",       function() refresh_buf(bufnr) end)
+      bm.n("u",       function() refresh_buf(bufnr) end)
       bm.n("<c-g>",   hud.transient)
       bm.n("i",       rhs_whereami)
       bm.n("e",       rhs_edit_playlist)
