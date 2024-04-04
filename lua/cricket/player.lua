@@ -2,7 +2,7 @@ local M = {}
 
 local ffi = require("ffi")
 
-local Augroup = require("infra.Augroup")
+local augroups = require("infra.augroups")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
 
@@ -137,7 +137,7 @@ end
 do --init
   M.init()
   --although barrier is being used, this is still necessary for :qa!
-  local aug = Augroup("cricket://player")
+  local aug = augroups.Augroup("cricket://player")
   aug:once("VimLeave", { callback = function() M.quit() end })
 end
 
