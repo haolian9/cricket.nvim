@@ -101,7 +101,6 @@ local function create_buf()
   do
     local bm = bufmap.wraps(bufnr)
 
-    bm.n("u",       function() rhs:refresh() end)
     bm.n("<c-g>",   hud.transient)
     bm.n("i",       function() rhs:whereami() end)
     bm.n("e",       function() rhs:edit_playlist() end)

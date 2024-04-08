@@ -26,6 +26,7 @@ fn initImpl() !void {
     try checkError(c.mpv_set_option_string(ctx, "input-default-bindings", "no"));
     try checkError(c.mpv_set_option_string(ctx, "input-vo-keyboard", "no"));
     // headless
+    try checkError(c.mpv_set_option_string(ctx, "video", "no"));
     try checkError(c.mpv_set_option_string(ctx, "audio-display", "no"));
     try checkError(c.mpv_set_option_string(ctx, "idle", "yes"));
 
