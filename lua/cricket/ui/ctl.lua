@@ -1,5 +1,6 @@
 local M = {}
 
+local buflines = require("infra.buflines")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
@@ -42,7 +43,7 @@ do
       callback = function()
         if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
 
-        local same = fn.iter_equals(player.prop_playlist(), api.nvim_buf_get_lines(this_bufnr, 0, -1, false))
+        local same = fn.iter_equals(player.prop_playlist(), buflines.all(self.bufnr))
         if same then return jelly.info("no reloading, %s has no changes", fs.basename(path)) end
 
         player.playlist_switch(path)
@@ -72,7 +73,7 @@ do
 
   function Impl:refresh()
     local chirps = fn.tolist(fn.map(function(chirp) return fs.stem(chirp.filename) end, player.prop_playlist()))
-    ctx.modifiable(self.bufnr, function() api.nvim_buf_set_lines(self.bufnr, 0, -1, false, chirps) end)
+    ctx.modifiable(self.bufnr, function() buflines.replaces_all(self.bufnr, chirps) end)
   end
 
   function Impl:shuffle()

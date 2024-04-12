@@ -1,5 +1,6 @@
 local M = {}
 
+local buflines = require("infra.buflines")
 local ctx = require("infra.ctx")
 local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
@@ -69,7 +70,7 @@ do
     vim.schedule(function()
       if not (winid and api.nvim_win_is_valid(winid)) then return uv.timer_stop(refresher) end
       local lines = get_lines()
-      ctx.modifiable(bufnr, function() api.nvim_buf_set_lines(bufnr, 0, -1, false, lines) end)
+      ctx.modifiable(bufnr, function() buflines.replaces_all(bufnr, lines) end)
       ctx.landwincall(function() api.nvim_win_set_config(winid, resolve_winopts(lines)) end)
     end)
   end)
