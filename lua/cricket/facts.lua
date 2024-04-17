@@ -4,7 +4,7 @@ local coreutils = require("infra.coreutils")
 local fs = require("infra.fs")
 
 do
-  local root = fs.joinpath(vim.fn.stdpath("state"), "cricket")
+  local root = fs.joinpath(vim.fn.stdpath("data"), "cricket")
   assert(coreutils.mkdir(root))
 
   M.root = root

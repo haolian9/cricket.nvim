@@ -26,6 +26,7 @@ do
   local function rhs_play()
     player.playlist_switch(resolve_cursor_path())
     player.play_index(0)
+    player.unpause()
     signals.ctl_refresh()
   end
 
