@@ -4,7 +4,8 @@ an opinionated mpv frontend lives in nvim
 
 
 ## features/limits
-* utilize libmpv
+* a music player
+* based on libmpv
 * stateless across nvim restarting
 * search playlists in a defined library root
 * playlist-oriented operations
@@ -12,7 +13,7 @@ an opinionated mpv frontend lives in nvim
 
 
 ## status
-* just works (tm)
+* just works
 * the use of ffi may crash nvim
 * feature-complete
 
@@ -29,7 +30,7 @@ an opinionated mpv frontend lives in nvim
 `zig build -Doptimize=ReleaseSafe`
 
 ## quick start
-* `$ lib=~/.local/state/nvim/cricket` # see cricket.facts.root
+* `$ lib=~/.local/share/nvim/cricket` # see cricket.facts.root
 * `$ mkdir $lib`
 * `$ find /foo/album -name '*.mp3' > $lib/foo` # create a playlist
 * `:lua require'cricket'.ctl()` # the main UI
