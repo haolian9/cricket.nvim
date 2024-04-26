@@ -43,24 +43,29 @@ do
       callback = function()
         if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
 
-        local same = fn.iter_equals(player.prop_playlist(), buflines.all(self.bufnr))
+        local same = fn.iter_equals(
+          fn.project(player.prop_playlist(), "filename"),
+          --
+          buflines.iter(self.bufnr)
+        )
         if same then return jelly.info("no reloading, %s has no changes", fs.basename(path)) end
 
         player.playlist_switch(path)
+        signals.ctl_refresh()
       end,
     })
   end
 
   function Impl:whereami()
     local pos = player.propi("playlist-pos")
-    if not (pos and pos ~= -1) then return end
+    if not (pos and pos ~= -1) then return jelly.info("not playing nor paused") end
     api.nvim_win_set_cursor(0, { pos + 1, 0 })
   end
 
   function Impl:quit()
     puff.confirm({ prompt = "quit the player?" }, function(confirmed)
       if not confirmed then return end
-      jelly.info("you'll need to call player.init() manually")
+      jelly.info("remember player.init()")
       player.quit()
     end)
   end
@@ -69,6 +74,7 @@ do
     local index = api.nvim_win_get_cursor(0)[1] - 1
     player.play_index(index)
     player.unpause()
+    jelly.info("playing #%d", index)
   end
 
   function Impl:refresh()
@@ -79,11 +85,63 @@ do
   function Impl:shuffle()
     player.cmd1("playlist-shuffle")
     signals.ctl_refresh()
+    jelly.info("playlist shuffled")
   end
 
   function Impl:unshuffle()
     player.cmd1("playlist-unshuffle")
     signals.ctl_refresh()
+    jelly.info("playlist restore/unshuffled")
+  end
+
+  function Impl:volume_up()
+    player.volume(5)
+    jelly.info("volume: +5, %d", player.propi("volume"))
+  end
+
+  function Impl:volume_down()
+    player.volume(-5)
+    jelly.info("volume: -5, %d", player.propi("volume"))
+  end
+
+  function Impl:toggle_pause()
+    player.toggle("pause")
+    jelly.info("toggle: paused?")
+  end
+
+  function Impl:toggle_mute()
+    player.toggle("mute")
+    jelly.info("toggle: muted?")
+  end
+
+  function Impl:seek_forward()
+    player.seek(5)
+    jelly.info("progress: +5s")
+  end
+
+  function Impl:seek_backword()
+    player.seek(-5)
+    jelly.info("progress: -5")
+  end
+
+  function Impl:play_next()
+    player.cmd1("playlist-next")
+    jelly.info("playing next track")
+  end
+
+  function Impl:play_prev()
+    player.cmd1("playlist-prev")
+    jelly.info("playing previous track")
+  end
+
+  function Impl:loop_track()
+    player.toggle("loop-file")
+    jelly.info("toggle: loop the current track? %d", player.propi("loop-file"))
+  end
+
+  function Impl:loop_playlist()
+    player.toggle("loop-playlist")
+    jelly.info("toggle: loop the current playlist? %d", player.propi("loop-playlist"))
   end
 
   ---@param bufnr integer
@@ -96,37 +154,52 @@ local function create_buf()
   ---@diagnostic disable-next-line: redefined-local
   local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true })
 
-  local rhs = RHS(bufnr)
+  ---@type cricket.ui.ctl.RHS
+  local rhs
+  do
+    local origin = RHS(bufnr)
+
+    rhs = setmetatable({}, {
+      __index = function(t, key)
+        local f = function(...) return origin[key](origin, ...) end
+        t[key] = f
+        return f
+      end,
+    })
+  end
 
   -- stylua: ignore
   do
     local bm = bufmap.wraps(bufnr)
 
     bm.n("<c-g>",   hud.transient)
-    bm.n("i",       function() rhs:whereami() end)
-    bm.n("e",       function() rhs:edit_playlist() end)
-    bm.n("o",       gallery.floatwin)
+    bm.n("i",       rhs.whereami)
+    bm.n("a",       rhs.edit_playlist)
+    bm.n("e",       rhs.edit_playlist)
+    bm.n("o",       rhs.edit_playlist)
+    bm.n("-",       gallery.floatwin)
 
-    bm.n("<cr>",    function() rhs:play_cursor() end)
-    bm.n("-",       function() player.volume(-5) end)
-    bm.n("=",       function() player.volume(5) end)
-    bm.n("<space>", function() player.toggle("pause") end)
-    bm.n("m",       function() player.toggle("mute") end)
-    bm.n("h",       function() player.seek(-5) end)
-    bm.n("l",       function() player.seek(5) end)
-    bm.n("n",       function() player.cmd1("playlist-next") end)
-    bm.n("p",       function() player.cmd1("playlist-prev") end)
-    bm.n("s",       function() rhs:shuffle() end)
-    bm.n("S",       function() rhs:unshuffle() end)
-    bm.n("r",       function() player.toggle("loop-file") end)
-    bm.n("R",       function() player.toggle("loop-playlist") end)
-    bm.n("x",       function() rhs:quit() end)
+    bm.n("<cr>",    rhs.play_cursor)
+    bm.n("9",       rhs.volume_down)
+    bm.n("0",       rhs.volume_up)
+    bm.n("<space>", rhs.toggle_pause)
+    bm.n("m",       rhs.toggle_mute)
+    bm.n("h",       rhs.seek_backword)
+    bm.n("l",       rhs.seek_forward)
+    bm.n("n",       rhs.play_next)
+    bm.n("p",       rhs.play_prev)
+    bm.n("s",       rhs.shuffle)
+    bm.n("S",       rhs.unshuffle)
+    bm.n("r",       rhs.loop_track)
+    bm.n("R",       rhs.loop_playlist)
+    bm.n("x",       rhs.quit)
 
   end
 
   signals.on_ctl_refresh(function()
     if not api.nvim_buf_is_valid(bufnr) then return true end
-    rhs:refresh()
+    ---@diagnostic disable-next-line: missing-parameter
+    rhs.refresh()
   end)
   signals.ctl_refresh()
 

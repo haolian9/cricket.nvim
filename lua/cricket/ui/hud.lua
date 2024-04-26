@@ -55,7 +55,7 @@ end
 ---@return table
 local function resolve_winopts(lines)
   --NB: it'd be display width instead of byte length
-  local llen = assert(fn.max(fn.map(function(l) return api.nvim_strwidth(l) end, lines)))
+  local llen = assert(fn.max(fn.map(api.nvim_strwidth, lines)))
   local height = #lines
   local width = math.min(llen, vim.go.columns)
   return dictlib.merged({ relative = "editor", focusable = false, zindex = 250 }, rifts.geo.editor(width, height, "right", "top"))
