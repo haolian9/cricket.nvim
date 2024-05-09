@@ -10,6 +10,7 @@ local jelly = require("infra.jellyfish")("cricket.ui.ctl", "info")
 local bufmap = require("infra.keymap.buffer")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
+local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
 local player = require("cricket.player")
@@ -59,7 +60,7 @@ do
   function Impl:whereami()
     local pos = player.propi("playlist-pos")
     if not (pos and pos ~= -1) then return jelly.info("not playing nor paused") end
-    api.nvim_win_set_cursor(0, { pos + 1, 0 })
+    wincursor.go(nil, pos, 0)
   end
 
   function Impl:quit()
@@ -71,7 +72,7 @@ do
   end
 
   function Impl:play_cursor()
-    local index = api.nvim_win_get_cursor(0)[1] - 1
+    local index = wincursor.lnum()
     player.play_index(index)
     player.unpause()
     jelly.info("playing #%d", index)
@@ -172,7 +173,7 @@ local function create_buf()
   do
     local bm = bufmap.wraps(bufnr)
 
-    bm.n("<c-g>",   hud.transient)
+    bm.n("<c-g>",   hud)
     bm.n("i",       rhs.whereami)
     bm.n("a",       rhs.edit_playlist)
     bm.n("e",       rhs.edit_playlist)

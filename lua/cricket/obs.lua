@@ -1,11 +1,11 @@
+local M = {}
+
 local fs = require("infra.fs")
 
 local facts = require("cricket.facts")
 local player = require("cricket.player")
 
 local uv = vim.loop
-
-local timer = uv.new_timer()
 
 local function resolve_track_name()
   local full = player.prop_filename()
@@ -14,18 +14,17 @@ local function resolve_track_name()
   return assert(string.match(stem, "^%d*[- .]*(.+)"))
 end
 
-local handlers = {
-  feed = function()
-    uv.timer_start(timer, 0, 5 * 1000, function()
-      local file = assert(io.open(facts.obs_feedfile, "w"))
-      local ok, err = pcall(function() file:write(resolve_track_name()) end)
-      file:close()
-      if not ok then error(err) end
-    end)
-  end,
-  stop = function() uv.timer_stop(timer) end,
-}
+local timer = uv.new_timer()
 
----@param op 'feed'|'stop'
-return function(op) assert(handlers[op])() end
+function M.feed()
+  uv.timer_start(timer, 0, 5 * 1000, function()
+    local file = assert(io.open(facts.obs_feedfile, "w"))
+    local ok, err = pcall(function() file:write(resolve_track_name()) end)
+    file:close()
+    assert(ok, err)
+  end)
+end
 
+function M.stop() uv.timer_stop(timer) end
+
+return M
