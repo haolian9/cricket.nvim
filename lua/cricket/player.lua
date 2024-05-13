@@ -6,8 +6,10 @@ local augroups = require("infra.augroups")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
 
+local g = require("cricket.g")
+
 ffi.cdef([[
-  bool cricket_init(void);
+  bool cricket_init(const char **props);
   bool cricket_quit(void);
   bool cricket_playlist_switch(const char *path);
   bool cricket_cmd1(const char *subcmd);
@@ -33,8 +35,23 @@ do
   local acquired = false
 
   --errs on failed
-  function M.init()
-    assert(C.cricket_init())
+  ---@param props? {[string]: string}
+  function M.init(props)
+    local list
+    if props == nil then
+      list = ffi.new("const char*[1]", {})
+    else
+      local flat = {}
+      for k, v in pairs(props) do
+        table.insert(flat, k)
+        table.insert(flat, v)
+      end
+      local type = string.format("const char*[%d]", #flat + 1)
+      ---@diagnostic disable-next-line: param-type-mismatch
+      list = ffi.new(type, flat)
+    end
+
+    assert(C.cricket_init(list))
     barrier.acquire(token)
     acquired = true
   end
@@ -135,7 +152,7 @@ function M.unpause()
 end
 
 do --init
-  M.init()
+  M.init(g.init_props)
   --although barrier is being used, this is still necessary for :qa!
   local aug = augroups.Augroup("cricket://player")
   aug:once("VimLeave", { callback = function() M.quit() end })

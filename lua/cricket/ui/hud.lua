@@ -23,7 +23,7 @@ local function get_lines()
     rope:putf("时长=%d", player.propi("duration") or 0)
 
     --todo: shuffle
-    return rope:tostring()
+    return rope:get()
   end)()
 
   lines[#lines + 1] = (function()

@@ -16,7 +16,7 @@ fn checkError(status: c_int) !void {
     return error.API;
 }
 
-fn initImpl() !void {
+fn initImpl(props: [*c][*c]const u8) !void {
     if (ctx != null) return;
 
     ctx = c.mpv_create() orelse return error.CreateFailed;
@@ -30,11 +30,20 @@ fn initImpl() !void {
     try checkError(c.mpv_set_option_string(ctx, "audio-display", "no"));
     try checkError(c.mpv_set_option_string(ctx, "idle", "yes"));
 
+    {
+        var i: usize = 0;
+        while (props[i] != 0) : (i += 2) {
+            const name = props[i];
+            const value = props[i + 1];
+            try checkError(c.mpv_set_option_string(ctx, name, value));
+        }
+    }
+
     try checkError(c.mpv_initialize(ctx));
 }
 
-export fn cricket_init() bool {
-    initImpl() catch |err| {
+export fn cricket_init(props: [*c][*c]const u8) bool {
+    initImpl(props) catch |err| {
         log.debug("{!}", .{err});
         return false;
     };

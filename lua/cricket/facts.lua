@@ -3,6 +3,9 @@ local M = {}
 local coreutils = require("infra.coreutils")
 local fs = require("infra.fs")
 
+---@type cricket.G
+local g = require("infra.G")("cricket")
+
 do
   local root = fs.joinpath(vim.fn.stdpath("data"), "cricket")
   assert(coreutils.mkdir(root))
