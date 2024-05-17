@@ -2,7 +2,6 @@
 
 an opinionated mpv frontend lives in nvim
 
-
 ## features/limits
 * a music player
 * based on libmpv
@@ -11,20 +10,16 @@ an opinionated mpv frontend lives in nvim
 * playlist-oriented operations
 * crude UI
 
-
 ## status
 * just works
 * the use of ffi may crash nvim
-* feature-complete
-
 
 ## prerequisites
-* mpv/libmpv 0.37.0
-* nvim 0.9.*
+* mpv/libmpv 0.38.0
+* nvim 0.10.*
 * zig 0.11.*
 * haolian9/infra.nvim
 * haolian9/puff.nvim
-
 
 ## build
 `zig build -Doptimize=ReleaseSafe`
