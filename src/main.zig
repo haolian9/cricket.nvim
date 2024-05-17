@@ -16,7 +16,7 @@ fn checkError(status: c_int) !void {
     return error.API;
 }
 
-fn initImpl(props: [*c][*c]const u8) !void {
+fn initImpl(props: [*c]const [*c]const u8) !void {
     if (ctx != null) return;
 
     ctx = c.mpv_create() orelse return error.CreateFailed;
@@ -42,7 +42,7 @@ fn initImpl(props: [*c][*c]const u8) !void {
     try checkError(c.mpv_initialize(ctx));
 }
 
-export fn cricket_init(props: [*c][*c]const u8) bool {
+export fn cricket_init(props: [*c]const [*c]const u8) bool {
     initImpl(props) catch |err| {
         log.debug("{!}", .{err});
         return false;
