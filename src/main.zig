@@ -192,7 +192,7 @@ export fn cricket_volume(offset: i8) bool {
     return true;
 }
 
-const allowed_propis = std.ComptimeStringMap(void, .{
+const allowed_intprops = std.ComptimeStringMap(void, .{
     .{"volume"}, // 0-100 percent
     .{"duration"}, // Duration of the current file in seconds
     .{"percent-pos"}, // 0-100; Position in current file (0-100)
@@ -200,22 +200,61 @@ const allowed_propis = std.ComptimeStringMap(void, .{
     .{"playlist-count"},
 });
 
-fn propiImpl(cname: [*:0]const u8, result: *i64) !void {
+fn intpropImpl(cname: [*:0]const u8) !i64 {
     if (ctx == null) return error.InitRequired;
 
-    // try toggles first
-    if (findToggleIndex(mem.span(cname))) |ti| {
-        result.* = @intFromBool(toggles[ti].v);
-        return;
-    }
+    const name = mem.span(cname);
 
-    if (!allowed_propis.has(mem.span(cname))) return error.InvalidPropi;
-    try checkError(c.mpv_get_property(ctx, cname, c.MPV_FORMAT_INT64, result));
+    // try toggles first
+    if (findToggleIndex(name)) |ti| return @intFromBool(toggles[ti].v);
+
+    if (!allowed_intprops.has(name)) return error.InvalidIntProp;
+
+    var result: i64 = undefined;
+    try checkError(c.mpv_get_property(ctx, cname, c.MPV_FORMAT_INT64, &result));
+    return result;
 }
 
-export fn cricket_propi(name: [*:0]const u8, result: *i64) bool {
-    propiImpl(name, result) catch |err| {
+export fn cricket_intprop(name: [*:0]const u8, result: [*c]i64) bool {
+    result.* = intpropImpl(name) catch |err| {
         log.debug("{!}", .{err});
+        return false;
+    };
+    return true;
+}
+
+const allowed_strprops = std.ComptimeStringMap(void, .{
+    .{"playlist"}, // json
+    .{"audio-device-list"}, // json
+});
+
+fn strpropImpl(cname: [*:0]const u8) ![*c]u8 {
+    if (ctx == null) return error.InitRequired;
+
+    const name = mem.span(cname);
+
+    if (!allowed_strprops.has(name)) return error.InvalidStrProp;
+
+    return c.mpv_get_property_string(ctx, cname);
+}
+
+export fn cricket_strprop(name: [*:0]const u8, result: [*c][*:0]u8) bool {
+    result.* = strpropImpl(name) catch |err| {
+        log.err("{!}", .{err});
+        return false;
+    };
+    return true;
+}
+
+fn setStrpropImpl(cname: [*:0]const u8, value: [*:0]const u8) !void {
+    if (ctx == null) return error.InitRequired;
+
+    return checkError(c.mpv_set_option_string(ctx, cname, value));
+}
+
+export fn cricket_set_strprop(name: [*:0]const u8, value: [*:0]const u8) bool {
+    setStrpropImpl(name, value) catch |err| {
+        log.err("{!}", .{err});
         return false;
     };
     return true;
@@ -236,20 +275,6 @@ export fn cricket_play_index(index: u16) bool {
         return false;
     };
     return true;
-}
-
-fn propPlaylistImpl() ![*c]u8 {
-    if (ctx == null) return error.InitRequired;
-
-    return c.mpv_get_property_string(ctx, "playlist");
-}
-
-/// caller should free the returned filename eventually
-export fn cricket_prop_playlist() [*c]u8 {
-    return propPlaylistImpl() catch |err| {
-        log.debug("{!}", .{err});
-        return null;
-    };
 }
 
 export fn cricket_free(ptr: ?*anyopaque) void {

@@ -13,6 +13,7 @@ local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
+local audiodevices = require("cricket.audiodevices")
 local player = require("cricket.player")
 local gallery = require("cricket.ui.gallery")
 local hud = require("cricket.ui.hud")
@@ -58,7 +59,7 @@ do
   end
 
   function Impl:whereami()
-    local pos = player.propi("playlist-pos")
+    local pos = player.intprop("playlist-pos")
     if not (pos and pos ~= -1) then return jelly.info("not playing nor paused") end
     wincursor.go(nil, pos, 0)
   end
@@ -97,12 +98,12 @@ do
 
   function Impl:volume_up()
     player.volume(5)
-    jelly.info("volume: +5, %d", player.propi("volume"))
+    jelly.info("volume: +5, %d", player.intprop("volume"))
   end
 
   function Impl:volume_down()
     player.volume(-5)
-    jelly.info("volume: -5, %d", player.propi("volume"))
+    jelly.info("volume: -5, %d", player.intprop("volume"))
   end
 
   function Impl:toggle_pause()
@@ -137,12 +138,12 @@ do
 
   function Impl:loop_track()
     player.toggle("loop-file")
-    jelly.info("toggle: loop the current track? %d", player.propi("loop-file"))
+    jelly.info("toggle: loop the current track? %d", player.intprop("loop-file"))
   end
 
   function Impl:loop_playlist()
     player.toggle("loop-playlist")
-    jelly.info("toggle: loop the current playlist? %d", player.propi("loop-playlist"))
+    jelly.info("toggle: loop the current playlist? %d", player.intprop("loop-playlist"))
   end
 
   ---@param bufnr integer
@@ -193,6 +194,7 @@ local function create_buf()
     bm.n("S",       rhs.unshuffle)
     bm.n("r",       rhs.loop_track)
     bm.n("R",       rhs.loop_playlist)
+    bm.n("A",       audiodevices.switch)
     bm.n("x",       rhs.quit)
 
   end

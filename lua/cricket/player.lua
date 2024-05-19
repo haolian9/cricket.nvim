@@ -5,6 +5,7 @@ local ffi = require("ffi")
 local augroups = require("infra.augroups")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
+local jelly = require("infra.jellyfish")("cricket.player", "debug")
 
 local g = require("cricket.g")
 
@@ -17,9 +18,10 @@ ffi.cdef([[
   bool cricket_toggle(const char *what);
   bool cricket_seek(int8_t offset);
   bool cricket_volume(int8_t offset);
-  bool cricket_propi(const char *name, int64_t *result);
+  bool cricket_intprop(const char *name, int64_t *result);
   bool cricket_play_index(uint16_t index);
-  char *cricket_prop_playlist(void);
+  bool cricket_strprop(const char *name, char **result);
+  bool cricket_set_strprop(const char *name, const char *value);
   void cricket_free(void *ptr);
 ]])
 
@@ -103,9 +105,9 @@ function M.toggle(what) return C.cricket_toggle(what) end
 function M.prop_filename()
   local ptr = C.cricket_prop_filename()
   if ptr == nil then return end
-  local ok, filename = pcall(function() return ffi.string(ptr) end)
+
+  local filename = ffi.string(ptr)
   C.cricket_free(ptr)
-  if not ok then error(filename) end
   return filename
 end
 
@@ -113,11 +115,12 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
+---@package
 ---@param name "volume"|"duration"|"percent-pos"|"playlist-pos"|"playlist-count"|"loop-playlist"|"loop-file"|"mute"|"pause"
 ---@return integer?
-function M.propi(name)
+function M.intprop(name)
   local val = ffi.new("int64_t[1]")
-  if C.cricket_propi(name, val) then return assert(tonumber(val[0])) end
+  if C.cricket_intprop(name, val) then return assert(tonumber(val[0])) end
 end
 
 ---@param index integer @>=0
@@ -132,24 +135,47 @@ do
   ---@field title? string
   ---@field id integer
 
+  ---@class cricket.AudioDevice
+  ---@field name string
+  ---@field description string
+
+  ---@param name string
+  ---@return any
+  local function main(name)
+    local ptrptr = ffi.new("char*[1]")
+    if not C.cricket_strprop(name, ptrptr) then return end
+
+    local ptr = ptrptr[0]
+    --todo: avoid ffi.string
+    local json = ffi.string(ptr)
+    C.cricket_free(ptr)
+
+    return vim.json.decode(json)
+  end
+
   ---@return cricket.Chirp[]
   function M.prop_playlist()
-    local ptr = C.cricket_prop_playlist()
-    if ptr == nil then return {} end
-    local ok, playlist = pcall(function()
-      --todo: avoid ffi.string
-      return vim.json.decode(ffi.string(ptr))
-    end)
-    C.cricket_free(ptr)
-    if not ok then error(playlist) end
-    return playlist
+    local concrete = main("playlist")
+    assert(concrete ~= nil and type(concrete) == "table")
+    return concrete
+  end
+
+  ---@return cricket.AudioDevice[]
+  function M.prop_audiodevices()
+    local concrete = main("audio-device-list")
+    assert(concrete ~= nil and type(concrete) == "table")
+    return concrete
   end
 end
 
 function M.unpause()
-  if M.propi("pause") ~= 1 then return end
+  if M.intprop("pause") ~= 1 then return end
   M.toggle("pause")
 end
+
+---@param device string
+---@return boolean
+function M.audiodevice_switch(device) return C.cricket_set_strprop("audio-device", device) end
 
 do --init
   M.init(g.init_props)

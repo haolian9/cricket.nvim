@@ -16,11 +16,11 @@ local function get_lines()
   lines[#lines + 1] = (function()
     local rope = ropes.new()
 
-    local function bi(prop) return player.propi(prop) == 1 and "是" or "否" end
+    local function bi(prop) return player.intprop(prop) == 1 and "是" or "否" end
 
-    rope:putf("音量=%d ", assert(player.propi("volume")))
+    rope:putf("音量=%d ", assert(player.intprop("volume")))
     rope:putf("循环=%s,%s ", bi("loop-file"), bi("loop-playlist"))
-    rope:putf("时长=%d", player.propi("duration") or 0)
+    rope:putf("时长=%d", player.intprop("duration") or 0)
 
     --todo: shuffle
     return rope:get()
