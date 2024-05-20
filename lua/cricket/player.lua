@@ -5,7 +5,6 @@ local ffi = require("ffi")
 local augroups = require("infra.augroups")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
-local jelly = require("infra.jellyfish")("cricket.player", "debug")
 
 local g = require("cricket.g")
 
