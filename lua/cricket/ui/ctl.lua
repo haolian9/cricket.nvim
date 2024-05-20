@@ -219,20 +219,11 @@ do
   end
 end
 
-function M.floatwin()
-  local bufnr = prepare_buf()
-  rifts.open.fragment(bufnr, true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 })
-end
+function M.floatwin() rifts.open.fragment(prepare_buf(), true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 }) end
 
-function M.win1000()
-  local bufnr = prepare_buf()
-  api.nvim_win_set_buf(0, bufnr)
-end
+function M.win1000() api.nvim_win_set_buf(0, prepare_buf()) end
 
 ---@param side infra.winsplit.Side
-function M.split(side)
-  local bufnr = prepare_buf()
-  winsplit(side, api.nvim_buf_get_name(bufnr))
-end
+function M.split(side) winsplit(side, prepare_buf()) end
 
 return M
