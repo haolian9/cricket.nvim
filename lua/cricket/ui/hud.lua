@@ -1,7 +1,7 @@
 local dictlib = require("infra.dictlib")
 local Ephemeral = require("infra.Ephemeral")
-local fn = require("infra.fn")
 local fs = require("infra.fs")
+local itertools = require("infra.itertools")
 local rifts = require("infra.rifts")
 
 local player = require("cricket.player")
@@ -45,7 +45,7 @@ end
 ---@return table
 local function resolve_winopts(lines)
   --NB: it'd be display width instead of byte length
-  local llen = assert(fn.max(fn.map(api.nvim_strwidth, lines)))
+  local llen = assert(itertools.max(itertools.map(api.nvim_strwidth, lines)))
   local height = #lines
   local width = math.min(llen, vim.go.columns)
   return dictlib.merged({ relative = "editor", focusable = false, zindex = 250 }, rifts.geo.editor(width, height, "right", "top"))

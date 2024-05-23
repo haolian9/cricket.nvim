@@ -2,8 +2,8 @@ local M = {}
 
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
-local fn = require("infra.fn")
 local fs = require("infra.fs")
+local itertools = require("infra.itertools")
 local bufmap = require("infra.keymap.buffer")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
@@ -44,7 +44,7 @@ do
   end
 
   function create_buf()
-    local lines = fn.tolist(fs.iterfiles(facts.root))
+    local lines = itertools.tolist(fs.iterfiles(facts.root))
 
     local bufnr = Ephemeral({ handyclose = true, name = "cricket://library" }, lines)
 

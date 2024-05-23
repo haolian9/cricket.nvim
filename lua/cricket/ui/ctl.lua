@@ -4,8 +4,8 @@ local buflines = require("infra.buflines")
 local ctx = require("infra.ctx")
 local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
-local fn = require("infra.fn")
 local fs = require("infra.fs")
+local itertools = require("infra.itertools")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "info")
 local bufmap = require("infra.keymap.buffer")
 local prefer = require("infra.prefer")
@@ -13,8 +13,8 @@ local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
-local audiodevices = require("cricket.audiodevices")
 local player = require("cricket.player")
+local audiodevices = require("cricket.ui.audiodevices")
 local gallery = require("cricket.ui.gallery")
 local hud = require("cricket.ui.hud")
 local signals = require("cricket.ui.signals")
@@ -45,8 +45,8 @@ do
       callback = function()
         if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
 
-        local same = fn.iter_equals(
-          fn.project(player.prop_playlist(), "filename"),
+        local same = itertools.equals(
+          itertools.project(player.prop_playlist(), "filename"),
           --
           buflines.iter(self.bufnr)
         )
@@ -80,7 +80,10 @@ do
   end
 
   function Impl:refresh()
-    local chirps = fn.tolist(fn.map(function(chirp) return fs.stem(chirp.filename) end, player.prop_playlist()))
+    local iter
+    iter = itertools.iter(player.prop_playlist())
+    iter = itertools.map(function(chirp) return fs.stem(chirp.filename) end, iter)
+    local chirps = itertools.tolist(iter)
     ctx.modifiable(self.bufnr, function() buflines.replaces_all(self.bufnr, chirps) end)
   end
 
