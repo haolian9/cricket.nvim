@@ -5,7 +5,7 @@ local fs = require("infra.fs")
 local facts = require("cricket.facts")
 local player = require("cricket.player")
 
-local uv = vim.loop
+local uv = vim.uv
 
 local function resolve_track_name()
   local full = player.prop_filename()
