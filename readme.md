@@ -17,9 +17,9 @@ an opinionated mpv frontend lives in nvim
 ## prerequisites
 * mpv/libmpv 0.38.0
 * nvim 0.10.*
-* zig 0.11.*
+* zig 0.12.*
 * haolian9/infra.nvim
-* haolian9/puff.nvim
+* haolian9/beckon.nvim # maybe it's better to use vim.ui.select, the interface, not a impl
 
 ## build
 `zig build -Doptimize=ReleaseSafe`
