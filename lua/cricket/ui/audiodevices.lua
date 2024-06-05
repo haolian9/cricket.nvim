@@ -2,8 +2,8 @@ local M = {}
 
 local itertools = require("infra.itertools")
 
+local ui_select = require("beckon.select")
 local player = require("cricket.player")
-local puff = require("puff")
 
 function M.switch()
   local devs = player.prop_audiodevices()
@@ -13,7 +13,7 @@ function M.switch()
   iter = itertools.map(function(dev) return string.format("%s (%s)", dev.name, dev.description) end, iter)
   local ents = itertools.tolist(iter)
 
-  puff.select(ents, { prompt = "select audio device" }, function(_, index)
+  ui_select(ents, { prompt = "select audio device" }, function(_, index)
     if index == nil then return end
     local dev = devs[index]
     player.audiodevice_switch(dev.name)
