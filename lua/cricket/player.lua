@@ -114,7 +114,6 @@ end
 ---@return boolean
 function M.volume(offset) return C.cricket_volume(offset) end
 
----@package
 ---@param name "volume"|"duration"|"percent-pos"|"playlist-pos"|"playlist-count"|"loop-playlist"|"loop-file"|"mute"|"pause"
 ---@return integer?
 function M.intprop(name)

@@ -6,6 +6,7 @@ local Ephemeral = require("infra.Ephemeral")
 local ex = require("infra.ex")
 local fs = require("infra.fs")
 local itertools = require("infra.itertools")
+local its = require("infra.its")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "info")
 local bufmap = require("infra.keymap.buffer")
 local prefer = require("infra.prefer")
@@ -80,10 +81,9 @@ do
   end
 
   function Impl:refresh()
-    local iter
-    iter = itertools.iter(player.prop_playlist())
-    iter = itertools.map(function(chirp) return fs.stem(chirp.filename) end, iter)
-    local chirps = itertools.tolist(iter)
+    local chirps = its(player.prop_playlist()) --
+      :map(function(chirp) return fs.stem(chirp.filename) end)
+      :tolist()
     ctx.modifiable(self.bufnr, function() buflines.replaces_all(self.bufnr, chirps) end)
   end
 

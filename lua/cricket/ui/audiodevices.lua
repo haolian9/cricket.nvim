@@ -1,6 +1,6 @@
 local M = {}
 
-local itertools = require("infra.itertools")
+local its = require("infra.its")
 
 local ui_select = require("beckon.select")
 local player = require("cricket.player")
@@ -8,10 +8,9 @@ local player = require("cricket.player")
 function M.switch()
   local devs = player.prop_audiodevices()
 
-  local iter
-  iter = itertools.iter(devs)
-  iter = itertools.map(function(dev) return string.format("%s (%s)", dev.name, dev.description) end, iter)
-  local ents = itertools.tolist(iter)
+  local ents = its(devs) --
+    :map(function(dev) return string.format("%s (%s)", dev.name, dev.description) end)
+    :tolist()
 
   ui_select(ents, { prompt = "select audio device" }, function(_, index)
     if index == nil then return end
