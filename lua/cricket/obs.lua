@@ -1,6 +1,7 @@
 local M = {}
 
 local fs = require("infra.fs")
+local iuv = require("infra.iuv")
 
 local facts = require("cricket.facts")
 local player = require("cricket.player")
@@ -14,7 +15,7 @@ local function resolve_track_name()
   return assert(string.match(stem, "^%d*[- .]*(.+)"))
 end
 
-local timer = uv.new_timer()
+local timer = iuv.new_timer()
 
 function M.feed()
   uv.timer_start(timer, 0, 5 * 1000, function()
