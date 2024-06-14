@@ -14,6 +14,7 @@ local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
+local beckonize = require("beckon.beckonize")
 local player = require("cricket.player")
 local audiodevices = require("cricket.ui.audiodevices")
 local gallery = require("cricket.ui.gallery")
@@ -173,10 +174,10 @@ local function create_buf()
     })
   end
 
-  -- stylua: ignore
   do
     local bm = bufmap.wraps(bufnr)
 
+    --stylua: ignore start
     bm.n("<c-g>",   hud)
     bm.n("i",       rhs.whereami)
     bm.n("a",       rhs.edit_playlist)
@@ -199,7 +200,8 @@ local function create_buf()
     bm.n("R",       rhs.loop_playlist)
     bm.n("A",       audiodevices.switch)
     bm.n("x",       rhs.quit)
-
+    bm.n("/",       function() beckonize(api.nvim_get_current_win()) end)
+    --stylua: ignore end
   end
 
   signals.on_ctl_refresh(function()
