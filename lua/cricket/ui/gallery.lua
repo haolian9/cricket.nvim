@@ -5,6 +5,7 @@ local ex = require("infra.ex")
 local fs = require("infra.fs")
 local itertools = require("infra.itertools")
 local bufmap = require("infra.keymap.buffer")
+local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
 local winsplit = require("infra.winsplit")
@@ -14,12 +15,10 @@ local facts = require("cricket.facts")
 local player = require("cricket.player")
 local signals = require("cricket.ui.signals")
 
-local api = vim.api
-
 local create_buf
 do
   local function resolve_cursor_path()
-    local line = api.nvim_get_current_line()
+    local line = ni.get_current_line()
     assert(line ~= "")
     return fs.joinpath(facts.root, line)
   end
@@ -40,7 +39,7 @@ do
 
   local function rhs_tabedit()
     ex("tabedit", resolve_cursor_path())
-    local bufnr = api.nvim_get_current_buf()
+    local bufnr = ni.get_current_buf()
     prefer.bo(bufnr, "bufhidden", "wipe")
   end
 
@@ -56,7 +55,7 @@ do
     bm.n("i", rhs_floatedit)
     bm.n("o", rhs_floatedit)
     bm.n("t", rhs_tabedit)
-    bm.n("/", function() beckonize(api.nvim_get_current_win()) end)
+    bm.n("/", function() beckonize(nil, nil, { remember = true }) end)
 
     return bufnr
   end
@@ -67,14 +66,14 @@ do
   local bufnr
   ---@return integer
   function prepare_buf()
-    if not (bufnr and api.nvim_buf_is_valid(bufnr)) then bufnr = create_buf() end
+    if not (bufnr and ni.buf_is_valid(bufnr)) then bufnr = create_buf() end
     return bufnr
   end
 end
 
 function M.floatwin() rifts.open.fragment(prepare_buf(), true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 }) end
 
-function M.win1000() api.nvim_win_set_buf(0, prepare_buf()) end
+function M.win1000() ni.win_set_buf(0, prepare_buf()) end
 
 ---@param side infra.winsplit.Side
 function M.split(side) winsplit(side, prepare_buf()) end

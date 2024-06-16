@@ -5,6 +5,7 @@ local ffi = require("ffi")
 local augroups = require("infra.augroups")
 local barrier = require("infra.barrier")
 local fs = require("infra.fs")
+local resolve_plugin_root = require("infra.resolve_plugin_root")
 
 local g = require("cricket.g")
 
@@ -26,9 +27,8 @@ ffi.cdef([[
 
 local C
 do
-  local lua_root = fs.resolve_plugin_root("cricket", "player.lua")
-  local root = fs.parent(fs.parent(lua_root))
-  C = ffi.load(fs.joinpath(root, "zig-out/lib/libcricket.so"), false)
+  local path = string.format("%s/%s", resolve_plugin_root("cricket", "player.lua"), "zig-out/lib/libcricket.so")
+  C = ffi.load(path, false)
 end
 
 do

@@ -9,6 +9,7 @@ local itertools = require("infra.itertools")
 local its = require("infra.its")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "info")
 local bufmap = require("infra.keymap.buffer")
+local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
@@ -21,8 +22,6 @@ local gallery = require("cricket.ui.gallery")
 local hud = require("cricket.ui.hud")
 local signals = require("cricket.ui.signals")
 local puff = require("puff")
-
-local api = vim.api
 
 local RHS
 do
@@ -38,10 +37,10 @@ do
 
     ex("tabedit", path)
 
-    local this_bufnr = api.nvim_get_current_buf()
+    local this_bufnr = ni.get_current_buf()
     prefer.bo(this_bufnr, "bufhidden", "wipe")
 
-    api.nvim_create_autocmd("bufwipeout", {
+    ni.create_autocmd("bufwipeout", {
       buffer = this_bufnr,
       once = true,
       callback = function()
@@ -200,12 +199,12 @@ local function create_buf()
     bm.n("R",       rhs.loop_playlist)
     bm.n("A",       audiodevices.switch)
     bm.n("x",       rhs.quit)
-    bm.n("/",       function() beckonize(api.nvim_get_current_win()) end)
+    bm.n("/",       function() beckonize(nil, nil, { remember = true }) end)
     --stylua: ignore end
   end
 
   signals.on_ctl_refresh(function()
-    if not api.nvim_buf_is_valid(bufnr) then return true end
+    if not ni.buf_is_valid(bufnr) then return true end
     ---@diagnostic disable-next-line: missing-parameter
     rhs.refresh()
   end)
@@ -219,14 +218,14 @@ do
   local bufnr
   ---@return integer
   function prepare_buf()
-    if not (bufnr and api.nvim_buf_is_valid(bufnr)) then bufnr = create_buf() end
+    if not (bufnr and ni.buf_is_valid(bufnr)) then bufnr = create_buf() end
     return bufnr
   end
 end
 
 function M.floatwin() rifts.open.fragment(prepare_buf(), true, { relative = "editor", border = "single" }, { width = 0.6, height = 0.8 }) end
 
-function M.win1000() api.nvim_win_set_buf(0, prepare_buf()) end
+function M.win1000() ni.win_set_buf(0, prepare_buf()) end
 
 ---@param side infra.winsplit.Side
 function M.split(side) winsplit(side, prepare_buf()) end
