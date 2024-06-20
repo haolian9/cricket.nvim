@@ -66,7 +66,7 @@ do
   end
 
   function Impl:quit()
-    puff.confirm({ prompt = "quit the player?" }, function(confirmed)
+    puff.confirm({ subject = "quit the player?" }, function(confirmed)
       if not confirmed then return end
       jelly.info("remember player.init()")
       player.quit()
