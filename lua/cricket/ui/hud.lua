@@ -8,36 +8,39 @@ local rifts = require("infra.rifts")
 local player = require("cricket.player")
 local ropes = require("string.buffer")
 
----@return string[]
-local function get_lines()
-  local lines = {}
+local get_lines
+do
+  local rope = ropes.new()
 
-  lines[#lines + 1] = (function()
-    local rope = ropes.new()
+  ---@return string[]
+  function get_lines()
+    local lines = {}
 
-    local function bi(prop) return player.intprop(prop) == 1 and "是" or "否" end
+    lines[#lines + 1] = (function()
+      local function bi(prop) return player.intprop(prop) == 1 and "是" or "否" end
 
-    rope:putf("音量=%d ", assert(player.intprop("volume")))
-    rope:putf("循环=%s,%s ", bi("loop-file"), bi("loop-playlist"))
-    rope:putf("时长=%d", player.intprop("duration") or 0)
+      rope:putf("音量=%d ", assert(player.intprop("volume")))
+      rope:putf("循环=%s,%s ", bi("loop-file"), bi("loop-playlist"))
+      rope:putf("时长=%d", player.intprop("duration") or 0)
 
-    --todo: shuffle
-    return rope:get()
-  end)()
+      --todo: shuffle
+      return rope:get()
+    end)()
 
-  lines[#lines + 1] = (function()
-    local path = player.playlist_current()
-    if path == nil then return end
-    return fs.basename(path)
-  end)()
+    lines[#lines + 1] = (function()
+      local path = player.playlist_current()
+      if path == nil then return end
+      return fs.basename(path)
+    end)()
 
-  lines[#lines + 1] = (function()
-    local fname = player.prop_filename()
-    if fname == nil then return end
-    return fs.stem(fname)
-  end)()
+    lines[#lines + 1] = (function()
+      local fname = player.prop_filename()
+      if fname == nil then return end
+      return fs.stem(fname)
+    end)()
 
-  return lines
+    return lines
+  end
 end
 
 ---@param lines string[]

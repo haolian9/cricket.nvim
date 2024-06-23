@@ -2,7 +2,7 @@ local M = {}
 
 local its = require("infra.its")
 
-local ui_select = require("beckon.select")
+local beckon_select = require("beckon.select")
 local player = require("cricket.player")
 
 function M.switch()
@@ -12,7 +12,7 @@ function M.switch()
     :map(function(dev) return string.format("%s (%s)", dev.name, dev.description) end)
     :tolist()
 
-  ui_select(ents, { prompt = "select audio device" }, function(_, index)
+  beckon_select(ents, { prompt = "select audio device" }, function(_, index)
     if index == nil then return end
     local dev = devs[index]
     player.audiodevice_switch(dev.name)
