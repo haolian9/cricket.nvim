@@ -47,7 +47,7 @@ do
         if player.playlist_current() ~= path then return jelly.info("no reloading as %s is not the current playlist", fs.basename(path)) end
 
         local same = itertools.equals(
-          itertools.project("filename", player.prop_playlist()),
+          itertools.project(player.prop_playlist(), "filename"),
           --
           buflines.iter(self.bufnr)
         )
