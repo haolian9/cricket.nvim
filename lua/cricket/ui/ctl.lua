@@ -10,6 +10,7 @@ local its = require("infra.its")
 local jelly = require("infra.jellyfish")("cricket.ui.ctl", "info")
 local bufmap = require("infra.keymap.buffer")
 local ni = require("infra.ni")
+local oop = require("infra.oop")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
@@ -66,7 +67,7 @@ do
   end
 
   function Impl:quit()
-    puff.confirm({ subject = "quit the player?" }, function(confirmed)
+    puff.confirm({ subject = "quit Cricket?" }, function(confirmed)
       if not confirmed then return end
       jelly.info("remember player.init()")
       player.quit()
@@ -156,22 +157,10 @@ end
 
 ---@return integer
 local function create_buf()
-  ---@diagnostic disable-next-line: redefined-local
   local bufnr = Ephemeral({ bufhidden = "hide", modifiable = false, name = "cricket://ctl", handyclose = true })
 
   ---@type cricket.ui.ctl.RHS
-  local rhs
-  do
-    local origin = RHS(bufnr)
-
-    rhs = setmetatable({}, {
-      __index = function(t, key)
-        local f = function(...) return origin[key](origin, ...) end
-        t[key] = f
-        return f
-      end,
-    })
-  end
+  local rhs = oop.dotize(RHS(bufnr))
 
   do
     local bm = bufmap.wraps(bufnr)
