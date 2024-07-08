@@ -16,7 +16,6 @@ local rifts = require("infra.rifts")
 local wincursor = require("infra.wincursor")
 local winsplit = require("infra.winsplit")
 
-local beckonize = require("beckon.beckonize")
 local player = require("cricket.player")
 local audiodevices = require("cricket.ui.audiodevices")
 local gallery = require("cricket.ui.gallery")
@@ -188,7 +187,6 @@ local function create_buf()
     bm.n("R",       rhs.loop_playlist)
     bm.n("A",       audiodevices.switch)
     bm.n("x",       rhs.quit)
-    bm.n("/",       function() beckonize(nil, nil, { remember = true }) end)
     --stylua: ignore end
   end
 

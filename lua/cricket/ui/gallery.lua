@@ -10,7 +10,6 @@ local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
 local winsplit = require("infra.winsplit")
 
-local beckonize = require("beckon.beckonize")
 local facts = require("cricket.facts")
 local player = require("cricket.player")
 local signals = require("cricket.ui.signals")
@@ -55,7 +54,6 @@ do
     bm.n("i", rhs_floatedit)
     bm.n("o", rhs_floatedit)
     bm.n("t", rhs_tabedit)
-    bm.n("/", function() beckonize(nil, nil, { remember = true }) end)
 
     return bufnr
   end
