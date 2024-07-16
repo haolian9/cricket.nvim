@@ -2,7 +2,7 @@ local M = {}
 
 local augroups = require("infra.augroups")
 
-local aug = augroups.Augroup("cricket:ui")
+local aug = augroups.Augroup("cricket://ui")
 
 function M.ctl_refresh() aug:emit("user", { pattern = "cricket:ui:ctl:refresh" }) end
 
