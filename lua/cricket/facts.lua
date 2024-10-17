@@ -2,18 +2,16 @@ local M = {}
 
 local coreutils = require("infra.coreutils")
 local fs = require("infra.fs")
-
----@type cricket.G
-local g = require("infra.G")("cricket")
+local mi = require("infra.mi")
 
 do
-  local root = fs.joinpath(vim.fn.stdpath("data"), "cricket")
+  local root = fs.joinpath(mi.stdpath("data"), "cricket")
   assert(coreutils.mkdir(root))
 
   M.root = root
 end
 
-M.obs_feedfile = fs.joinpath(vim.fn.stdpath("state"), "cricket.obs")
+M.obs_feedfile = fs.joinpath(mi.stdpath("state"), "cricket.obs")
 
 return M
 
