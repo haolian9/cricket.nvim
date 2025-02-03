@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
         const so = b.addSharedLibrary(.{
             .name = "cricket",
             .target = target,
-            .root_source_file = .{ .path = "src/main.zig" },
+            .root_source_file = b.path("src/main.zig"),
             .optimize = optimize,
             .link_libc = true,
         });

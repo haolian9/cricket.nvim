@@ -77,7 +77,7 @@ export fn cricket_playlist_switch(path: [*:0]const u8) bool {
     return true;
 }
 
-const allowed_subcmds = std.ComptimeStringMap(void, .{
+const allowed_subcmds = std.StaticStringMap(void).initComptime(.{
     .{"playlist-shuffle"},
     .{"playlist-unshuffle"},
     .{"playlist-next"},
@@ -192,7 +192,7 @@ export fn cricket_volume(offset: i8) bool {
     return true;
 }
 
-const allowed_intprops = std.ComptimeStringMap(void, .{
+const allowed_intprops = std.StaticStringMap(void).initComptime(.{
     .{"volume"}, // 0-100 percent
     .{"duration"}, // Duration of the current file in seconds
     .{"percent-pos"}, // 0-100; Position in current file (0-100)
@@ -223,7 +223,7 @@ export fn cricket_intprop(name: [*:0]const u8, result: [*c]i64) bool {
     return true;
 }
 
-const allowed_strprops = std.ComptimeStringMap(void, .{
+const allowed_strprops = std.StaticStringMap(void).initComptime(.{
     .{"playlist"}, // json
     .{"audio-device-list"}, // json
 });
